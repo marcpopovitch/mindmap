@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Carte mentale — Profils & Extras (Gestion Complète)</title>
+  <title>Carte mentale — Profils & Extras (Cloud Sync)</title>
   <style>
     :root{
       --bg:#0b1020;
@@ -18,9 +18,8 @@
     }
 
     *{ box-sizing:border-box; }
-    html,body{ height:100%; }
+    html,body{ height:100%; margin:0; padding:0; overflow:hidden; width:100%; }
     body{
-      margin:0;
       font-family:var(--sans);
       background:
         radial-gradient(1200px 800px at 20% 10%, rgba(122,167,255,.18), transparent 60%),
@@ -28,7 +27,6 @@
         radial-gradient(900px 650px at 50% 100%, rgba(255,122,191,.10), transparent 60%),
         var(--bg);
       color:var(--text);
-      overflow:hidden;
     }
 
     /* Top bar */
@@ -44,54 +42,19 @@
       border-radius: var(--radius);
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow);
-      z-index: 20;
+      z-index: 50;
     }
-    .title{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width: 280px;
-    }
-    .title h1{
-      margin:0;
-      font-size:14px;
-      letter-spacing:.2px;
-      font-weight:700;
-    }
-    .title p{
-      margin:0;
-      font-size:11px;
-      color:var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .sync-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(0,0,0,0.2);
-      font-size: 10px;
-    }
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #aaa;
-    }
+    .title{ display:flex; flex-direction:column; gap:2px; min-width: 280px; }
+    .title h1{ margin:0; font-size:14px; letter-spacing:.2px; font-weight:700; }
+    .title p{ margin:0; font-size:11px; color:var(--muted); display: flex; align-items: center; gap: 6px; }
+    
+    .sync-status { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.2); font-size: 10px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #aaa; }
     .status-dot.online { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
     .status-dot.syncing { background: #fbbf24; }
     .status-dot.offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
 
-    .controls{
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+    .controls{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
     .btn, .search{
       border:1px solid var(--line);
       background: rgba(17,27,54,.65);
@@ -100,117 +63,91 @@
       padding:10px 12px;
       font-size:12px;
       cursor:pointer;
-      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      transition: background .2s ease, border-color .2s ease, transform 0.1s;
       user-select:none;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .btn.primary {
-      background: rgba(122,167,255,.2);
-      border-color: rgba(122,167,255,.4);
-      color: #fff;
-      font-weight: 600;
-    }
-    .btn.primary:hover {
-      background: rgba(122,167,255,.4);
-    }
-    .btn:hover:not(.primary){ background: rgba(17,27,54,.9); border-color: rgba(122,167,255,.35); }
-    .btn:active{ transform: translateY(1px); }
-    .btn .k{ font-family:var(--mono); opacity:.8; margin-left:6px; font-size:11px; }
+    .btn.primary { background: rgba(122,167,255,.2); border-color: rgba(122,167,255,.4); font-weight: 600; }
+    .btn:hover{ background: rgba(17,27,54,.9); border-color: rgba(122,167,255,.35); }
+    .btn:active{ transform: scale(0.95); }
 
-    .search{
-      cursor:text;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 10px;
-      min-width: 260px;
-    }
-    .search input{
-      width:100%;
-      border:0;
-      outline:0;
-      background:transparent;
-      color:var(--text);
-      font-size:12px;
-    }
-    .pill{
-      font-family:var(--mono);
-      font-size:11px;
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      color:var(--muted);
-      background: rgba(0,0,0,.15);
-      white-space:nowrap;
-    }
+    .search{ cursor:text; min-width: 260px; padding:8px 10px; }
+    .search input{ width:100%; border:0; outline:0; background:transparent; color:var(--text); font-size:12px; }
 
-    /* Modal (Add New Item) */
+    /* Zoom FAB Controls (Bottom Right) */
+    .zoom-fab {
+      position: fixed;
+      bottom: 60px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 100;
+    }
+    .zoom-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(15,23,48,.85);
+      border: 1px solid var(--line);
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      transition: all 0.2s;
+    }
+    .zoom-btn:hover { background: var(--accent); border-color: white; transform: translateY(-2px); }
+    .zoom-btn:active { transform: scale(0.9); }
+
+    /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.6);
       backdrop-filter: blur(6px);
-      z-index: 100;
+      z-index: 200;
       display: none;
-      align-items: center;
-      justify-content: center;
+      align-items: center; justify-content: center;
     }
     .modal-overlay.active { display: flex; }
     .modal {
-      background: #0f1730;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 24px;
-      width: 400px;
-      max-width: 90%;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+      background: #0f1730; border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 24px; width: 400px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
     }
     .modal h3 { margin: 0 0 20px 0; font-size: 16px; }
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
     .form-group input, .form-group select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,0.2);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 13px;
-      outline: none;
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);
+      background: rgba(0,0,0,0.2); color: var(--text); font-size: 13px; outline: none;
     }
-    .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
 
-    /* Canvas (pan/zoom) */
-    .viewport{
+    /* Viewport & Stage */
+    .viewport { position:absolute; inset:0; overflow:hidden; cursor: grab; z-index: 5; }
+    .viewport:active { cursor: grabbing; }
+    .stage {
       position:absolute;
-      inset:0;
-      overflow:hidden;
-      cursor: grab;
-    }
-    .viewport:active{ cursor: grabbing; }
-
-    .stage{
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform: translate(-50%,-50%) scale(1);
+      left:50%; top:50%;
       transform-origin: center;
       will-change: transform;
-      padding: 120px 140px;
+      padding: 200px;
+      transition: transform 0.05s linear; /* Petit lissage pour le mouvement */
     }
 
     /* Mindmap layout */
-    .mindmap{
+    .mindmap {
       position:relative;
       display:grid;
-      grid-template-columns: 1fr 360px 1fr;
-      gap: 42px;
-      align-items:center;
-      min-width: 1180px;
+      grid-template-columns: 500px 360px 500px;
+      gap: 60px;
+      align-items: flex-start; /* Alignement vers le haut pour stabilité */
+      min-width: 1420px;
     }
 
     /* Center node */
@@ -218,20 +155,21 @@
       grid-column:2;
       justify-self:center;
       width:360px;
-      padding:18px 18px 14px;
+      padding:24px;
       border-radius: 22px;
       border:1px solid rgba(122,167,255,.35);
       background: linear-gradient(180deg, rgba(122,167,255,.18), rgba(17,27,54,.65));
       box-shadow: 0 18px 40px rgba(0,0,0,.45);
-      position:relative;
+      position:sticky;
+      top: 0;
     }
-    .center h2{ margin:0; font-size:15px; font-weight:800; letter-spacing:.2px; }
-    .center p{ margin:6px 0 0; font-size:12px; color:var(--muted); line-height: 1.35; }
+    .center h2{ margin:0; font-size:16px; font-weight:800; }
+    .center p{ margin:8px 0 0; font-size:12px; color:var(--muted); line-height: 1.4; }
 
     /* Bubble columns */
-    .col{ display:flex; flex-direction:column; gap:14px; }
-    .col.left{ grid-column:1; justify-self:end; }
-    .col.right{ grid-column:3; justify-self:start; }
+    .col{ display:flex; flex-direction:column; gap:20px; }
+    .col.left{ grid-column:1; align-items: flex-end; }
+    .col.right{ grid-column:3; align-items: flex-start; }
 
     /* Bubble card */
     details.bubble{
@@ -239,162 +177,47 @@
       border-radius: var(--radius);
       border:1px solid var(--line);
       background: rgba(17,27,54,.55);
-      box-shadow: 0 10px 26px rgba(0,0,0,.28);
+      box-shadow: 0 10px 26px rgba(0,0,0,.2);
       overflow:hidden;
-      transition: border-color .2s ease;
+      transition: border-color .2s;
     }
-    details.bubble[open]{
-      border-color: rgba(122,167,255,.35);
-      background: rgba(17,27,54,.72);
-    }
+    details.bubble[open]{ border-color: rgba(122,167,255,.35); background: rgba(17,27,54,.8); }
     summary{
-      list-style:none;
-      cursor:pointer;
-      padding: 14px 14px 12px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      user-select:none;
+      list-style:none; cursor:pointer; padding: 16px;
+      display:flex; align-items:center; gap:12px; user-select:none;
     }
-    summary::-webkit-details-marker{ display:none; }
     .icon{
-      width:34px; height:34px;
-      display:grid; place-items:center;
-      border-radius: 12px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.18);
-      flex: 0 0 auto;
-      font-size:16px;
+      width:38px; height:38px; display:grid; place-items:center;
+      border-radius: 12px; border:1px solid var(--line); background: rgba(0,0,0,.18);
+      flex: 0 0 auto; font-size:18px;
     }
     .bubble-title{ display:flex; flex-direction:column; gap:4px; min-width: 0; }
-    .bubble-title b{ font-size:13px; letter-spacing:.2px; }
-    .bubble-title span{ font-size:11px; line-height:1.3; color:var(--muted); font-style: italic; }
-    .chev{ margin-left:auto; opacity:.8; transition: transform .2s ease; font-size:12px; }
-    details[open] .chev{ transform: rotate(180deg); }
+    .bubble-title b{ font-size:14px; }
+    .bubble-title span{ font-size:11px; color:var(--muted); font-style: italic; }
 
-    .items{
-      padding: 0 14px 14px;
-      border-top:1px solid var(--line);
-      background: rgba(14,22,48,.35);
-    }
-    
+    .items{ padding: 0 16px 16px; border-top:1px solid var(--line); background: rgba(14,22,48,.2); }
     .cat-group { margin-top: 18px; }
-    .cat-group:first-child { margin-top: 10px; }
     .cat-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      color: rgba(122,167,255,.9);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 8px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      color: var(--accent); display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
     }
 
-    .items ul{
-      margin:0;
-      padding:0;
-      list-style:none;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
+    .items ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; }
     .items li{
-      padding:10px 10px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.08);
-      background: rgba(0,0,0,.12);
-      font-size:12px;
-      line-height: 1.25;
-      color: rgba(234,240,255,.92);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+      padding:10px 12px; border-radius: 12px; border:1px solid rgba(255,255,255,.05);
+      background: rgba(0,0,0,.15); font-size:12px; display: flex; justify-content: space-between; align-items: center;
     }
-    /* Style particulier pour les items ajoutés dynamiquement */
-    .items li.custom-item {
-      background: rgba(122,167,255,.1);
-      border-color: rgba(122,167,255,.3);
-    }
-    
-    .item-content { flex: 1; }
-    .delete-btn {
-      cursor: pointer;
-      opacity: 0.3;
-      transition: all 0.2s;
-      padding: 2px 6px;
-      border-radius: 6px;
-      font-size: 11px;
-    }
-    .delete-btn:hover {
-      opacity: 1;
-      background: rgba(255, 60, 60, 0.2);
-      color: #ff5555;
-    }
-    mark{
-      background: rgba(122,167,255,.25);
-      color: var(--text);
-      padding:0 3px;
-      border-radius: 6px;
-    }
-    .tag{
-      display:inline-block;
-      margin-left:8px;
-      padding:2px 8px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.12);
-      font-size:11px;
-      opacity:.85;
-      white-space:nowrap;
-    }
+    .delete-btn { cursor: pointer; opacity: 0.2; transition: 0.2s; padding: 4px; }
+    .delete-btn:hover { opacity: 1; color: #ff5555; }
 
     /* Connectors */
-    .connectors{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      z-index: 0;
-    }
-    .connectors svg{
-      width:100%;
-      height:100%;
-      overflow:visible;
-      display:block;
-    }
-    .node-layer{
-      position:relative;
-      z-index: 2;
-    }
+    .connectors{ position:absolute; inset:0; pointer-events:none; z-index: 0; }
+    .connectors svg{ width:100%; height:100%; overflow:visible; display:block; }
 
     .hint{
-      position:fixed;
-      inset:auto 16px 16px 16px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:10px 12px;
-      border-radius: var(--radius);
-      border:1px solid var(--line);
-      background: rgba(15,23,48,.55);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
-      color:var(--muted);
-      font-size:12px;
-      z-index: 20;
-    }
-
-    @media (max-width: 1150px){
-      body{ overflow:auto; }
-      .viewport{ position:static; height:auto; cursor:auto; }
-      .stage{ position:static; transform:none !important; padding: 96px 16px 16px; }
-      .mindmap{ min-width: auto; grid-template-columns: 1fr; }
-      .center{ grid-column:auto; width:min(620px, 100%); }
-      .col.left, .col.right{ grid-column:auto; justify-self:stretch; }
-      details.bubble{ width: 100%; }
-      .connectors{ display:none; }
+      position:fixed; inset:auto 16px 16px 16px; display:flex; align-items:center;
+      padding:10px 14px; border-radius: var(--radius); border:1px solid var(--line);
+      background: rgba(15,23,48,.7); backdrop-filter: blur(10px); color:var(--muted); font-size:11px; z-index: 50;
     }
   </style>
 </head>
@@ -410,28 +233,31 @@
         </span>
       </p>
     </div>
-
     <div class="search">
-      <span style="opacity:.8">🔎</span>
-      <input id="q" type="text" placeholder="Rechercher..." />
+      <input id="q" type="text" placeholder="Rechercher un extra..." />
     </div>
-
     <div class="controls">
       <button class="btn primary" id="openAddModal">＋ Ajouter</button>
-      <button class="btn" id="expand">Tout ouvrir</button>
-      <button class="btn" id="collapse">Tout fermer</button>
-      <button class="btn" id="restore" title="Restaurer les éléments supprimés">Restaurer ↺</button>
+      <button class="btn" id="expand">Ouvrir tout</button>
+      <button class="btn" id="collapse">Fermer tout</button>
+      <button class="btn" id="restore">Restaurer ↺</button>
       <button class="btn" id="reset">Reset vue</button>
     </div>
   </div>
 
-  <!-- Modal d'ajout -->
+  <div class="zoom-controls">
+    <div class="zoom-fab">
+      <button class="zoom-btn" id="zoomIn" title="Zoomer">+</button>
+      <button class="zoom-btn" id="zoomOut" title="Dézoomer">−</button>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="addModal">
     <div class="modal">
       <h3>Ajouter un Extra Bancaire</h3>
       <div class="form-group">
         <label>Nom de l'extra</label>
-        <input type="text" id="newItemName" placeholder="Ex: Service de Conciergerie Premium" required />
+        <input type="text" id="newItemName" placeholder="Ex: Service Conciergerie VIP" required />
       </div>
       <div class="form-group">
         <label>Profil Consommateur</label>
@@ -443,7 +269,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn" id="cancelAdd">Annuler</button>
-        <button class="btn primary" id="confirmAdd">Ajouter à la carte</button>
+        <button class="btn primary" id="confirmAdd">Ajouter</button>
       </div>
     </div>
   </div>
@@ -457,22 +283,15 @@
 
         <div class="node-layer center" id="center">
           <h2>🌟 Écosystème par Profils</h2>
-          <p>L'intégralité des extras bancaires d'origine, classés par archétypes.</p>
-          <div class="meta">
-            <span class="pill">Ajout dynamique</span>
-            <span class="pill">Sync Cloud</span>
-          </div>
+          <p>Gestion dynamique des services bancaires nouvelle génération.</p>
         </div>
 
-        <!-- LEFT COLUMN -->
         <div class="col left node-layer">
-          
           <!-- PROFIL 1 : INVESTISSEUR -->
           <details class="bubble" data-bubble data-profile="investisseur" open>
             <summary>
               <div class="icon">📈</div>
               <div class="bubble-title"><b>L'Investisseur (Le Multiplicateur)</b><span>"Chaque euro est une graine plantée..."</span></div>
-              <div class="chev">▾</div>
             </summary>
             <div class="items">
               <div class="cat-group" data-category="Investissement & Finance Avancée">
@@ -506,30 +325,9 @@
                   <li>BaaS (Banking-as-a-Service)</li>
                   <li>Supply Chain Finance</li>
                   <li>Assurance pro embarquée</li>
-                  <li>Embedded lending (e-commerce)</li>
                   <li>Suite bureautique / outils numériques</li>
                   <li>Stockage cloud</li>
                   <li>Signature électronique</li>
-                </ul>
-              </div>
-              <div class="cat-group" data-category="Éducation & Compétences">
-                <div class="cat-title"><span>🎓</span> Éducation & Compétences</div>
-                <ul>
-                  <li>Plateforme de formation</li>
-                  <li>Certifications</li>
-                  <li>Coaching carrière / CV</li>
-                  <li>Bibliothèque de cours premium</li>
-                </ul>
-              </div>
-              <div class="cat-group" data-category="Écologie & Communauté">
-                <div class="cat-title"><span>🌍</span> Écologie & Communauté</div>
-                <ul>
-                  <li>Suivi empreinte carbone</li>
-                  <li>Compensation carbone</li>
-                  <li>Score de durabilité des marchands</li>
-                  <li>Prêts verts (Green loans)</li>
-                  <li>Épargne verte</li>
-                  <li>Reporting ESG du portefeuille</li>
                 </ul>
               </div>
             </div>
@@ -540,75 +338,42 @@
             <summary>
               <div class="icon">🧱</div>
               <div class="bubble-title"><b>Le Bâtisseur (Le Sédentaire)</b><span>"Chaque euro est un parpaing posé..."</span></div>
-              <div class="chev">▾</div>
             </summary>
             <div class="items">
               <div class="cat-group" data-category="Maison & Logement">
                 <div class="cat-title"><span>🏠</span> Maison & Logement</div>
                 <ul>
-                  <li>Assistance maison (plombier, serrurier, électricien)</li>
+                  <li>Assistance maison (plombier, serrurier)</li>
                   <li>Réduction assurance habitation</li>
                   <li>Coffre-fort numérique logement</li>
-                  <li>Négociation énergie / changement fournisseur</li>
+                  <li>Négociation énergie</li>
                   <li>Suivi consommation énergie</li>
                   <li>Centralisation factures eau/énergie</li>
-                  <li>Dossier logement prêt à envoyer</li>
-                  <li>Marketplace immobilier intégrée</li>
                   <li>Simulateur hypothécaire intelligent</li>
                   <li>Gestion locative</li>
-                  <li>Déménagement & services maison</li>
-                  <li>Rénovation énergétique (mise en relation + aides)</li>
-                  <li>Conseil énergie (Energy Advisor)</li>
-                </ul>
-              </div>
-              <div class="cat-group" data-category="Famille & Enfants">
-                <div class="cat-title"><span>👨‍👩‍👧</span> Famille & Enfants</div>
-                <ul>
-                  <li>Offre “famille”</li>
-                  <li>Contrôle parental financier</li>
-                  <li>Argent de poche automatisé</li>
-                  <li>Réductions activités (ciné, parcs, sport)</li>
-                  <li>Soutien scolaire / e-learning</li>
-                  <li>Assurance scolaire</li>
-                </ul>
-              </div>
-              <div class="cat-group" data-category="Mobilité & Transport">
-                <div class="cat-title"><span>🚗</span> Mobilité & Transport</div>
-                <ul>
-                  <li>Réductions carburant / recharge EV</li>
-                  <li>Réductions parking</li>
-                  <li>Télépéage</li>
-                  <li>Assurance mobilité douce</li>
-                  <li>Leasing & financement auto</li>
+                  <li>Rénovation énergétique</li>
                 </ul>
               </div>
             </div>
           </details>
         </div>
 
-        <!-- RIGHT COLUMN -->
         <div class="col right node-layer">
-          
           <!-- PROFIL 3 : LE NOMADE -->
           <details class="bubble" data-bubble data-profile="nomade" open>
             <summary>
               <div class="icon">✈️</div>
               <div class="bubble-title"><b>Le Nomade (L'Explorateur)</b><span>"L'argent est un jeton de passage..."</span></div>
-              <div class="chev">▾</div>
             </summary>
             <div class="items">
               <div class="cat-group" data-category="Voyage & Expériences Premium">
                 <div class="cat-title"><span>✈</span> Voyage & Expériences Premium</div>
                 <ul>
                   <li>Assurance voyage modulable</li>
-                  <li>Assurance voyage automatique</li>
                   <li>Réservation voyages (plateforme)</li>
                   <li>Deals vols & hôtels</li>
                   <li>Accès lounges aéroport</li>
-                  <li>Protection retard bagages</li>
                   <li>Conciergerie voyage / 24-7</li>
-                  <li>Upgrade hôtel / location auto</li>
-                  <li>Planification voyage + budget intelligent</li>
                   <li>Compte multi-devises</li>
                 </ul>
               </div>
@@ -616,20 +381,8 @@
                 <div class="cat-title"><span>📱</span> Télécom & Connectivité</div>
                 <ul>
                   <li>Réduction forfait mobile / box</li>
-                  <li>eSIM voyage / internationale <span class="tag">ex : eSIM</span></li>
-                  <li>Data roaming (packs data à l’étranger)</li>
-                  <li>Offre opérateur mobile (MVNO)</li>
-                  <li>VPN</li>
-                  <li>Wi-Fi nomade</li>
-                </ul>
-              </div>
-              <div class="cat-group" data-category="Mobilité & Transport">
-                <div class="cat-title"><span>🚗</span> Mobilité & Transport</div>
-                <ul>
-                  <li>Pass transports locaux</li>
-                  <li>Crédits VTC / taxi</li>
-                  <li>Location voiture / scooter / vélo</li>
-                  <li>Assistance dépannage / remorquage</li>
+                  <li>eSIM voyage / internationale</li>
+                  <li>VPN et Wi-Fi nomade</li>
                 </ul>
               </div>
             </div>
@@ -639,57 +392,25 @@
           <details class="bubble" data-bubble data-profile="consommateur" open>
             <summary>
               <div class="icon">🛍️</div>
-              <div class="bubble-title"><b>Le Consommateur (Le Présent)</b><span>"L'argent est une monnaie d'échange immédiate..."</span></div>
-              <div class="chev">▾</div>
+              <div class="bubble-title"><b>Le Consommateur (Le Présent)</b><span>"L'argent est une monnaie d'échange..."</span></div>
             </summary>
             <div class="items">
               <div class="cat-group" data-category="Shopping & Pouvoir d’Achat">
                 <div class="cat-title"><span>🛒</span> Shopping & Pouvoir d’Achat</div>
                 <ul>
                   <li>Cashback multi-enseignes</li>
-                  <li>Cashback partenaires premium</li>
-                  <li>Cashback commerces locaux</li>
-                  <li>Cashback change / paiements à l’étranger</li>
-                  <li>Programme de points cumulés chez partenaires</li>
-                  <li>Bonus / récompense à l’ouverture du compte</li>
-                  <li>Coupons & bons plans shopping</li>
                   <li>Paiement fractionné (BNPL)</li>
-                  <li>Livraison courses (abonnement partenaire)</li>
-                  <li>Réductions restaurants</li>
-                  <li>Carte “prix garanti”</li>
+                  <li>Coupons & bons plans shopping</li>
                   <li>Protection achats (casse/vol)</li>
-                  <li>Extension de garantie</li>
-                  <li>Suivi prix & liste de souhaits</li>
-                  <li>Achat groupé</li>
-                  <li>Carte anti-gaspillage</li>
-                  <li>Crédits restauration mensuels</li>
-                  <li>Alertes inflation personnalisées</li>
-                  <li>Outils anti-inflation (comparaison + optimisation)</li>
-                  <li>Marketplace “cadeaux” (ex : fleurs)</li>
+                  <li>Outils anti-inflation</li>
                 </ul>
               </div>
               <div class="cat-group" data-category="Divertissement & Contenus">
                 <div class="cat-title"><span>🎬</span> Divertissement & Contenus</div>
                 <ul>
-                  <li>Streaming vidéo <span class="tag">ex : Netflix, Amazon</span></li>
-                  <li>Streaming musique</li>
+                  <li>Streaming vidéo et musique</li>
                   <li>Cloud gaming (pass jeux)</li>
                   <li>Presse & médias</li>
-                  <li>Audiobooks <span class="tag">ex : Plume</span></li>
-                  <li>Bundle multi-contenus (vidéo + musique + presse)</li>
-                </ul>
-              </div>
-              <div class="cat-group" data-category="Écologie & Communauté">
-                <div class="cat-title"><span>🌍</span> Écologie & Communauté</div>
-                <ul>
-                  <li>Arrondi solidaire / dons</li>
-                  <li>Offres partenaires locaux</li>
-                  <li>Programme fidélité</li>
-                  <li>Marketplace d’avantages</li>
-                  <li>Parrainage premium</li>
-                  <li>Accès événements</li>
-                  <li>Financement participatif</li>
-                  <li>Plateforme de revente sécurisée (tiers de confiance)</li>
                 </ul>
               </div>
             </div>
@@ -700,69 +421,36 @@
             <summary>
               <div class="icon">🛡️</div>
               <div class="bubble-title"><b>Le Rationnel (Le Sécuritaire)</b><span>"Chaque euro est un rempart érigé..."</span></div>
-              <div class="chev">▾</div>
             </summary>
             <div class="items">
               <div class="cat-group" data-category="Sécurité & Protection">
                 <div class="cat-title"><span>🛡</span> Sécurité & Protection</div>
                 <ul>
                   <li>Assurance smartphone incluse</li>
-                  <li>Assurance fraude & cyber-usurpation</li>
-                  <li>Assurances intégrées (voyage, santé, habitation)</li>
                   <li>Protection identité numérique</li>
-                  <li>Identité numérique (type BankID)</li>
-                  <li>Coffre-fort d’identité numérique</li>
                   <li>Anti-fraude e-commerce</li>
                   <li>Assistance juridique</li>
-                  <li>Protection juridique</li>
-                  <li>Assurance animaux</li>
-                  <li>Prévoyance & décès</li>
-                  <li>Gestionnaire mots de passe / 2FA</li>
-                  <li>Surveillance fuite de données</li>
                 </ul>
               </div>
               <div class="cat-group" data-category="IA & Optimisation Financière">
                 <div class="cat-title"><span>🤖</span> IA & Optimisation Financière</div>
                 <ul>
                   <li>Assistant financier 24/7</li>
-                  <li>Recommandation personnalisée d’extras</li>
-                  <li>Coaching budgétaire dynamique</li>
                   <li>Budget prédictif</li>
-                  <li>Alerte risque de découvert prédictive</li>
-                  <li>Détection abonnements “doublons”</li>
-                  <li>Gestion des abonnements (pilotage + résiliation)</li>
-                  <li>PFM — pilotage des finances personnelles</li>
-                  <li>Résiliation / renégociation automatique</li>
-                  <li>Comparateur énergie & télécom</li>
-                  <li>Simplification administrative (impôts + litiges + contrats)</li>
-                  <li>Simulation de scénarios de vie</li>
-                  <li>Pré-remplissage déclaration impôts</li>
-                  <li>Gestion papiers véhicule</li>
-                </ul>
-              </div>
-              <div class="cat-group" data-category="Santé & Bien-être">
-                <div class="cat-title"><span>🧘</span> Santé & Bien-être</div>
-                <ul>
-                  <li>Téléconsultation <span class="tag">médecine en ligne</span></li>
-                  <li>Assurance santé intégrée</li>
-                  <li>Coaching sport / nutrition</li>
-                  <li>Programme sommeil / gestion du stress</li>
-                  <li>Réductions salle de sport</li>
-                  <li>Assistance psychologique</li>
-                  <li>Suivi dépenses santé intelligent</li>
-                  <li>Prise de RDV santé simplifiée</li>
-                  <li>Programme “bien-être financier” (prévention & coaching)</li>
+                  <li>Gestion des abonnements</li>
+                  <li>PFM — pilotage des finances</li>
                 </ul>
               </div>
             </div>
           </details>
         </div>
-
       </div>
     </div>
   </div>
 
-  <div class="hint">🖱️ <b>Pan</b> : clic-glissé • 🔍 <b>Zoom</b> : molette</div>
+  <div class="hint">
+    <span>🖱️ <b>Déplacement</b> : Trackpad à deux doigts ou Clic-glissé • 🔍 <b>Zoom</b> : Boutons + / - uniquement</span>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -773,6 +461,8 @@
     const syncText = document.getElementById('syncText');
     const q = document.getElementById("q");
     const bubbles = Array.from(document.querySelectorAll("[data-bubble]"));
+    const stage = document.getElementById("stage");
+    const viewport = document.getElementById("viewport");
 
     let app, auth, db, currentUser = null;
     let deletedIds = [];
@@ -781,10 +471,8 @@
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'mindmap-app-default';
 
     // ======================================
-    // 1. CONFIGURATION FIREBASE (POUR GITHUB)
+    // 1. CONFIGURATION FIREBASE (VOS INFOS)
     // ======================================
-    // Remplissez ces valeurs avec celles de votre propre projet Firebase (gratuit)
-    // si vous hébergez ce fichier sur GitHub Pages ou un autre serveur.
     const githubFirebaseConfig = {
       apiKey: "AIzaSyCRtw9w6bmN3IvjMtRMMBrw68kWrXdixLM",
       authDomain: "mindmap-bbe22.firebaseapp.com",
@@ -794,64 +482,38 @@
       appId: "1:760423670810:web:a045b53580e5c4b1eadda3"
     };
 
-    // Détection de l'environnement (Canvas de l'IA vs GitHub)
     const isCanvasEnv = typeof __firebase_config !== 'undefined';
     const configToUse = isCanvasEnv ? JSON.parse(__firebase_config) : githubFirebaseConfig;
-
-    // Chemin Firebase : 6 segments (Pair)
     const getStateDocRef = () => doc(db, 'artifacts', appId, 'public', 'data', 'mindmap', 'state2');
 
-    // ======================================
-    // Initialisation
-    // ======================================
-    if (configToUse.apiKey && configToUse.apiKey !== "") {
+    // Initialisation Firebase
+    if (configToUse.apiKey) {
       try {
         app = initializeApp(configToUse);
         auth = getAuth(app);
         db = getFirestore(app);
         
-        const initAuth = async () => {
-          try {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-              await signInAnonymously(auth);
-            }
-          } catch (e) {
-            console.error("Erreur Auth:", e);
-            syncText.innerText = "Erreur de connexion";
-            syncDot.classList.add('offline');
-          }
-        };
-
         onAuthStateChanged(auth, (user) => {
           if (user) {
             currentUser = user;
             syncDot.classList.add('online');
-            syncText.innerText = "Connecté (Cloud activé)";
+            syncText.innerText = "Synchronisation Cloud Active";
             startSync();
           }
         });
-
+        
+        const initAuth = async () => {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        };
         initAuth();
-      } catch (e) {
-        fallbackToLocalMode("Erreur d'initialisation Cloud");
-        console.error(e);
-      }
-    } else {
-      fallbackToLocalMode("Mode Local (Ajoutez votre config Firebase)");
-    }
-
-    function fallbackToLocalMode(message) {
-      syncText.innerText = message;
-      syncDot.classList.add('offline');
-      console.warn("Pour activer le Cloud sur GitHub, ajoutez vos clés dans la constante 'githubFirebaseConfig'.");
-      initOriginalItems(); // Initialise l'interface même sans cloud
-      applySyncUI(); // Applique localement (mémoire)
+      } catch (e) { console.error(e); }
     }
 
     function startSync() {
-      if (!currentUser || !db) return;
       onSnapshot(getStateDocRef(), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -861,233 +523,149 @@
         } else {
           setDoc(getStateDocRef(), { deletedIds: [], addedItems: [] });
         }
-      }, (err) => console.error("Sync error:", err));
+      });
     }
 
     // ======================================
-    // Actions de Modification & Suppression
-    // ======================================
-    async function pushDeletion(id) {
-      if (!deletedIds.includes(id)) {
-        deletedIds.push(id);
-      }
-      
-      if (currentUser && db) {
-        syncDot.classList.add('syncing');
-        await updateDoc(getStateDocRef(), { deletedIds });
-        syncDot.classList.remove('syncing');
-      } else {
-        applySyncUI(); // Mode Local
-      }
-    }
-
-    async function pushAddition(profile, category, label) {
-      const newItem = {
-        id: 'custom_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-        profile,
-        category,
-        label
-      };
-      addedItems.push(newItem);
-
-      if (currentUser && db) {
-        syncDot.classList.add('syncing');
-        await updateDoc(getStateDocRef(), { addedItems });
-        syncDot.classList.remove('syncing');
-      } else {
-        applySyncUI(); // Mode Local
-      }
-    }
-
-    async function restoreAll() {
-      deletedIds = [];
-      if (currentUser && db) {
-        syncDot.classList.add('syncing');
-        await updateDoc(getStateDocRef(), { deletedIds: [] });
-        syncDot.classList.remove('syncing');
-      } else {
-        applySyncUI(); // Mode Local
-      }
-    }
-
-    // ======================================
-    // Injection et Mises à jour du DOM
+    // Sync UI & Items
     // ======================================
     function initOriginalItems() {
-      // Setup des IDs et des boutons sur les éléments hardcodés (une seule fois)
       document.querySelectorAll('.items li:not(.custom-item)').forEach(li => {
         if (!li.dataset.id) {
-          const txt = li.textContent.trim();
-          const textId = btoa(encodeURIComponent(txt)).replace(/=/g, '');
+          const textId = btoa(encodeURIComponent(li.textContent.trim())).replace(/=/g, '');
           li.setAttribute('data-id', textId);
           const original = li.innerHTML;
-          // Injection sécurisée
           li.innerHTML = `<div class="item-content" data-original='${original.replace(/'/g, "&#39;")}'>${original}</div><div class="delete-btn" title="Supprimer">✖</div>`;
         }
       });
     }
 
     function applySyncUI() {
-      // 1. Masquer les originaux supprimés
       document.querySelectorAll('.items li:not(.custom-item)').forEach(li => {
         li.style.display = deletedIds.includes(li.dataset.id) ? 'none' : 'flex';
       });
-
-      // 2. Nettoyer les custom items existants dans le DOM pour éviter les doublons
       document.querySelectorAll('.items li.custom-item').forEach(el => el.remove());
 
-      // 3. Injecter les items ajoutés
       addedItems.forEach(item => {
-        if (deletedIds.includes(item.id)) return; // Si supprimé par la suite
-
+        if (deletedIds.includes(item.id)) return;
         const profileEl = document.querySelector(`[data-profile="${item.profile}"]`);
         if (!profileEl) return;
-        
-        const catGroups = Array.from(profileEl.querySelectorAll('.cat-group'));
-        const targetGroup = catGroups.find(g => g.dataset.category === item.category);
-        if (!targetGroup) return;
-
-        const ul = targetGroup.querySelector('ul');
-        const li = document.createElement('li');
-        li.className = 'custom-item';
-        li.dataset.id = item.id;
-        li.innerHTML = `
-          <div class="item-content" data-original='${item.label.replace(/'/g, "&#39;")}'>${item.label}</div>
-          <div class="delete-btn" title="Supprimer">✖</div>
-        `;
-        ul.appendChild(li);
+        const targetGroup = Array.from(profileEl.querySelectorAll('.cat-group')).find(g => g.dataset.category === item.category);
+        if (targetGroup) {
+          const li = document.createElement('li');
+          li.className = 'custom-item';
+          li.dataset.id = item.id;
+          li.innerHTML = `<div class="item-content" data-original='${item.label.replace(/'/g, "&#39;")}'>${item.label}</div><div class="delete-btn">✖</div>`;
+          targetGroup.querySelector('ul').appendChild(li);
+        }
       });
-
-      // Appliquer la recherche en cours s'il y en a une
-      filterSearch(q.value);
+      drawConnectors();
     }
 
-    // Event Delegation pour tous les boutons "supprimer" (Originaux ET Nouveaux)
+    async function pushDeletion(id) {
+      if (!currentUser) return;
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        syncDot.classList.add('syncing');
+        await updateDoc(getStateDocRef(), { deletedIds });
+        syncDot.classList.remove('syncing');
+      }
+    }
+
+    async function pushAddition(profile, category, label) {
+      if (!currentUser) return;
+      const newItem = { id: 'c_' + Date.now(), profile, category, label };
+      addedItems.push(newItem);
+      syncDot.classList.add('syncing');
+      await updateDoc(getStateDocRef(), { addedItems });
+      syncDot.classList.remove('syncing');
+    }
+
     document.getElementById('mindmap').addEventListener('click', (e) => {
       if (e.target.classList.contains('delete-btn')) {
-        const li = e.target.closest('li');
-        if (li && li.dataset.id) {
-          pushDeletion(li.dataset.id);
-        }
+        const id = e.target.closest('li').dataset.id;
+        pushDeletion(id);
       }
     });
 
-    initOriginalItems();
+    // ======================================
+    // Navigation (Pan & Zoom)
+    // ======================================
+    let scale = 1, tx = 0, ty = 0, isPanning = false, startX = 0, startY = 0;
 
+    function applyTransform() {
+      stage.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scale})`;
+      drawConnectors();
+    }
+
+    // Pan au Trackpad (Wheel)
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      // On ne zoom plus au wheel, même avec CTRL
+      tx -= e.deltaX * 1.2;
+      ty -= e.deltaY * 1.2;
+      applyTransform();
+    }, { passive: false });
+
+    // Pan à la souris (Drag)
+    viewport.onmousedown = (e) => {
+      if (["summary","details","input","button","select"].includes(e.target.tagName.toLowerCase())) return;
+      isPanning = true; startX = e.clientX - tx; startY = e.clientY - ty;
+    };
+    window.onmousemove = (e) => {
+      if(isPanning) { tx = e.clientX - startX; ty = e.clientY - startY; applyTransform(); }
+    };
+    window.onmouseup = () => isPanning = false;
+
+    // Zoom Buttons
+    document.getElementById('zoomIn').onclick = () => { scale = Math.min(2, scale + 0.15); applyTransform(); };
+    document.getElementById('zoomOut').onclick = () => { scale = Math.max(0.3, scale - 0.15); applyTransform(); };
+    document.getElementById('reset').onclick = () => { scale = 1; tx = 0; ty = 0; applyTransform(); };
 
     // ======================================
-    // Modal d'Ajout Logique
+    // UI Controls
     // ======================================
     const addModal = document.getElementById('addModal');
     const profileSelect = document.getElementById('newProfileSelect');
     const categorySelect = document.getElementById('newCategorySelect');
     const nameInput = document.getElementById('newItemName');
 
-    // Extraire dynamiquement les profils et catégories existants du DOM
-    function populateModalData() {
-      profileSelect.innerHTML = '';
-      bubbles.forEach(b => {
-        const profileId = b.dataset.profile;
-        const profileName = b.querySelector('.bubble-title b').innerText;
-        profileSelect.innerHTML += `<option value="${profileId}">${profileName}</option>`;
-      });
-      updateCategorySelect();
-    }
-
-    function updateCategorySelect() {
-      categorySelect.innerHTML = '';
-      const selectedProfile = profileSelect.value;
-      const profileEl = document.querySelector(`[data-profile="${selectedProfile}"]`);
-      if (profileEl) {
-        const catGroups = profileEl.querySelectorAll('.cat-group');
-        catGroups.forEach(cg => {
-          const catName = cg.dataset.category;
-          categorySelect.innerHTML += `<option value="${catName}">${catName}</option>`;
-        });
-      }
-    }
-
-    profileSelect.addEventListener('change', updateCategorySelect);
-
     document.getElementById('openAddModal').onclick = () => {
-      populateModalData();
-      nameInput.value = '';
+      profileSelect.innerHTML = bubbles.map(b => `<option value="${b.dataset.profile}">${b.querySelector('b').innerText}</option>`).join('');
+      updateCategorySelect();
       addModal.classList.add('active');
-      nameInput.focus();
     };
+    const updateCategorySelect = () => {
+      const p = document.querySelector(`[data-profile="${profileSelect.value}"]`);
+      categorySelect.innerHTML = Array.from(p.querySelectorAll('.cat-group')).map(g => `<option value="${g.dataset.category}">${g.dataset.category}</option>`).join('');
+    };
+    profileSelect.onchange = updateCategorySelect;
     document.getElementById('cancelAdd').onclick = () => addModal.classList.remove('active');
-    
     document.getElementById('confirmAdd').onclick = () => {
-      const label = nameInput.value.trim();
-      const prof = profileSelect.value;
-      const cat = categorySelect.value;
-      if (label && prof && cat) {
-        pushAddition(prof, cat, label);
+      if (nameInput.value.trim()) {
+        pushAddition(profileSelect.value, categorySelect.value, nameInput.value.trim());
         addModal.classList.remove('active');
-        document.querySelector(`[data-profile="${prof}"]`).open = true;
       }
     };
 
-
-    // ======================================
-    // Pan & Zoom Logic
-    // ======================================
-    const viewport = document.getElementById("viewport");
-    const stage = document.getElementById("stage");
-    let scale = 1, tx = 0, ty = 0, isPanning = false, startX = 0, startY = 0;
-
-    function applyTransform(){
-      stage.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scale})`;
-      drawConnectors();
-    }
-
-    viewport.onmousedown = (e) => {
-      if (["summary","details","input","button","select","option"].includes(e.target.tagName.toLowerCase())) return;
-      isPanning = true; startX = e.clientX - tx; startY = e.clientY - ty;
-    };
-    window.onmousemove = (e) => { if(isPanning) { tx = e.clientX - startX; ty = e.clientY - startY; applyTransform(); } };
-    window.onmouseup = () => isPanning = false;
-    viewport.onwheel = (e) => {
-      if (addModal.classList.contains('active')) return; // Empêche le zoom quand la modale est ouverte
-      e.preventDefault(); scale = Math.min(2, Math.max(0.4, scale + (Math.sign(e.deltaY) * -0.1))); applyTransform();
+    document.getElementById('expand').onclick = () => bubbles.forEach(d => d.open = true);
+    document.getElementById('collapse').onclick = () => bubbles.forEach(d => d.open = false);
+    document.getElementById('restore').onclick = async () => {
+      if(currentUser) await updateDoc(getStateDocRef(), { deletedIds: [] });
     };
 
-    document.getElementById("expand").onclick = () => bubbles.forEach(d=>d.open=true);
-    document.getElementById("collapse").onclick = () => bubbles.forEach(d=>d.open=false);
-    document.getElementById("reset").onclick = () => { scale=1; tx=0; ty=0; applyTransform(); };
-    document.getElementById("restore").onclick = () => restoreAll();
-
-    // ======================================
-    // Recherche et Surlignage
-    // ======================================
-    function filterSearch(term) {
-      term = term.trim().toLowerCase();
-      const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?![^<]*>)`, "ig");
-      
+    q.oninput = () => {
+      const t = q.value.toLowerCase();
       bubbles.forEach(d => {
-        const items = d.querySelector(".items");
-        items.querySelectorAll(".item-content").forEach(el => {
-          const original = el.dataset.original || "";
-          el.innerHTML = term ? original.replace(re, '<mark>$1</mark>') : original;
-        });
-        
-        if (!term) { 
-          d.style.display = ""; 
-          return; 
-        }
-        
-        const hit = d.innerText.toLowerCase().includes(term);
-        d.style.display = hit ? "" : "none";
-        if (hit) d.open = true;
+        const hit = d.innerText.toLowerCase().includes(t);
+        d.style.display = t && !hit ? "none" : "";
+        if (hit && t) d.open = true;
       });
       drawConnectors();
-    }
-
-    q.oninput = () => filterSearch(q.value);
-
+    };
 
     // ======================================
-    // Connecteurs (Lignes SVG)
+    // Connecteurs (SVG)
     // ======================================
     const svg = document.getElementById("svg");
     const mindmap = document.getElementById("mindmap");
@@ -1096,27 +674,27 @@
     function drawConnectors(){
       const w = mindmap.clientWidth, h = mindmap.clientHeight;
       svg.setAttribute("width", w); svg.setAttribute("height", h);
-      const cRect = center.getBoundingClientRect();
-      const mmRect = mindmap.getBoundingClientRect();
-      const cx = (cRect.left + cRect.width/2 - mmRect.left)/scale;
-      const cy = (cRect.top + cRect.height/2 - mmRect.top)/scale;
+      const cR = center.getBoundingClientRect();
+      const mR = mindmap.getBoundingClientRect();
+      const cx = (cR.left + cR.width/2 - mR.left)/scale;
+      const cy = (cR.top + cR.height/2 - mR.top)/scale;
 
       svg.innerHTML = `<defs><linearGradient id="g"><stop offset="0" stop-color="#7aa7ff66"/><stop offset="1" stop-color="#7bffcc33"/></linearGradient></defs>`;
       bubbles.filter(d => d.style.display !== "none").forEach(d => {
         const r = d.getBoundingClientRect();
-        const x1 = (r.left + r.width/2 < mmRect.left + mmRect.width/2 + tx) ? (cRect.left - mmRect.left)/scale : (cRect.right - mmRect.left)/scale;
-        const y1 = cy;
-        const x2 = (r.left + r.width/2 < mmRect.left + mmRect.width/2 + tx) ? (r.right - mmRect.left)/scale : (r.left - mmRect.left)/scale;
-        const y2 = (r.top + r.height/2 - mmRect.top)/scale;
-        svg.innerHTML += `<path d="M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}" fill="none" stroke="url(#g)" stroke-width="2" />`;
+        const isL = (r.left + r.width/2 < mR.left + mR.width/2 + tx);
+        const x1 = isL ? (cR.left - mR.left)/scale : (cR.right - mR.left)/scale;
+        const x2 = isL ? (r.right - mR.left)/scale : (r.left - mR.left)/scale;
+        const y2 = (r.top + r.height/2 - mR.top)/scale;
+        svg.innerHTML += `<path d="M ${x1} ${cy} C ${(x1+x2)/2} ${cy}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}" fill="none" stroke="url(#g)" stroke-width="2" />`;
       });
     }
 
+    initOriginalItems();
     window.onresize = drawConnectors;
     bubbles.forEach(d => d.ontoggle = drawConnectors);
     setTimeout(drawConnectors, 200);
     applyTransform();
-
   </script>
 </body>
 </html>

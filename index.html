@@ -253,6 +253,7 @@
     </div>
     <div class="controls">
       <button class="btn primary" id="openAddModal">＋ Ajouter</button>
+      <button class="btn" id="downloadBtn" title="Télécharger les données en texte">📥 Exporter</button>
       <button class="btn" id="expand">Ouvrir tout</button>
       <button class="btn" id="collapse">Fermer tout</button>
       <button class="btn" id="undoBtn" title="Annuler" disabled>⟲</button>
@@ -657,6 +658,54 @@
         pushDeletion(id);
       }
     });
+
+    // ======================================
+    // Export Data (Texte)
+    // ======================================
+    document.getElementById('downloadBtn').onclick = () => {
+      let textContent = "=================================================\n";
+      textContent += "   ÉCOSYSTÈME PAR PROFILS - EXTRAS BANCAIRES   \n";
+      textContent += "=================================================\n\n";
+
+      bubbles.forEach(bubble => {
+        const profileTitle = bubble.querySelector('.bubble-title b').innerText.trim();
+        const profileDesc = bubble.querySelector('.bubble-title span').innerText.trim();
+        
+        textContent += `[ PROFIL ] : ${profileTitle}\n`;
+        textContent += `[ VISION ] : ${profileDesc}\n`;
+        textContent += `-------------------------------------------------\n\n`;
+
+        const categories = bubble.querySelectorAll('.cat-group');
+        categories.forEach(cat => {
+          const catTitle = cat.querySelector('.cat-title').innerText.trim();
+          let hasVisibleItems = false;
+          let catContent = `  ■ CATÉGORIE : ${catTitle}\n`;
+
+          const items = cat.querySelectorAll('li');
+          items.forEach(li => {
+            if (li.style.display !== 'none') {
+              hasVisibleItems = true;
+              const contentDiv = li.querySelector('.item-content');
+              const itemText = contentDiv.innerText.replace(/\n/g, ' - ').trim();
+              catContent += `    - ${itemText}\n`;
+            }
+          });
+
+          if (hasVisibleItems) {
+            textContent += catContent + "\n";
+          }
+        });
+        textContent += "\n";
+      });
+
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ecosysteme_extras_bancaires.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
 
     // ======================================
     // Undo / Redo Actions

@@ -72,6 +72,8 @@
     .btn.primary { background: rgba(122,167,255,.2); border-color: rgba(122,167,255,.4); font-weight: 600; }
     .btn:hover{ background: rgba(17,27,54,.9); border-color: rgba(122,167,255,.35); }
     .btn:active{ transform: scale(0.95); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+    .btn .k{ font-family:var(--mono); opacity:.8; margin-left:6px; font-size:11px; }
 
     .search{ cursor:text; min-width: 260px; padding:8px 10px; }
     .search input{ width:100%; border:0; outline:0; background:transparent; color:var(--text); font-size:12px; }
@@ -137,7 +139,7 @@
       transform-origin: center;
       will-change: transform;
       padding: 200px;
-      transition: transform 0.05s linear; /* Petit lissage pour le mouvement */
+      transition: transform 0.05s linear;
     }
 
     /* Mindmap layout */
@@ -146,7 +148,7 @@
       display:grid;
       grid-template-columns: 500px 360px 500px;
       gap: 60px;
-      align-items: flex-start; /* Alignement vers le haut pour stabilité */
+      align-items: flex-start;
       min-width: 1420px;
     }
 
@@ -213,12 +215,6 @@
     /* Connectors */
     .connectors{ position:absolute; inset:0; pointer-events:none; z-index: 0; }
     .connectors svg{ width:100%; height:100%; overflow:visible; display:block; }
-
-    .hint{
-      position:fixed; inset:auto 16px 16px 16px; display:flex; align-items:center;
-      padding:10px 14px; border-radius: var(--radius); border:1px solid var(--line);
-      background: rgba(15,23,48,.7); backdrop-filter: blur(10px); color:var(--muted); font-size:11px; z-index: 50;
-    }
   </style>
 </head>
 
@@ -240,7 +236,8 @@
       <button class="btn primary" id="openAddModal">＋ Ajouter</button>
       <button class="btn" id="expand">Ouvrir tout</button>
       <button class="btn" id="collapse">Fermer tout</button>
-      <button class="btn" id="restore">Restaurer ↺</button>
+      <button class="btn" id="undoBtn" title="Annuler" disabled>⟲</button>
+      <button class="btn" id="redoBtn" title="Refaire" disabled>⟳</button>
       <button class="btn" id="reset">Reset vue</button>
     </div>
   </div>
@@ -448,10 +445,6 @@
     </div>
   </div>
 
-  <div class="hint">
-    <span>🖱️ <b>Déplacement</b> : Trackpad à deux doigts ou Clic-glissé • 🔍 <b>Zoom</b> : Boutons + / - uniquement</span>
-  </div>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -467,6 +460,10 @@
     let app, auth, db, currentUser = null;
     let deletedIds = [];
     let addedItems = [];
+
+    // History (Undo / Redo)
+    let history = [];
+    let historyIndex = -1;
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'mindmap-app-default';
 
@@ -513,13 +510,42 @@
       } catch (e) { console.error(e); }
     }
 
+    function pushToHistory() {
+      if (historyIndex < history.length - 1) {
+        history = history.slice(0, historyIndex + 1);
+      }
+      history.push({
+        deletedIds: [...deletedIds],
+        addedItems: JSON.parse(JSON.stringify(addedItems))
+      });
+      historyIndex++;
+      updateUndoRedoButtons();
+    }
+
+    function updateUndoRedoButtons() {
+      const undoBtn = document.getElementById('undoBtn');
+      const redoBtn = document.getElementById('redoBtn');
+      if (undoBtn) undoBtn.disabled = historyIndex <= 0;
+      if (redoBtn) redoBtn.disabled = historyIndex >= history.length - 1;
+    }
+
     function startSync() {
       onSnapshot(getStateDocRef(), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          deletedIds = data.deletedIds || [];
-          addedItems = data.addedItems || [];
-          applySyncUI();
+          const incomingDeleted = data.deletedIds || [];
+          const incomingAdded = data.addedItems || [];
+
+          // Vérifier si les données entrantes diffèrent de l'état local
+          const isIdentical = JSON.stringify(deletedIds) === JSON.stringify(incomingDeleted) &&
+                              JSON.stringify(addedItems) === JSON.stringify(incomingAdded);
+
+          if (!isIdentical || history.length === 0) {
+            deletedIds = incomingDeleted;
+            addedItems = incomingAdded;
+            pushToHistory();
+            applySyncUI();
+          }
         } else {
           setDoc(getStateDocRef(), { deletedIds: [], addedItems: [] });
         }
@@ -566,6 +592,7 @@
       if (!currentUser) return;
       if (!deletedIds.includes(id)) {
         deletedIds.push(id);
+        pushToHistory();
         syncDot.classList.add('syncing');
         await updateDoc(getStateDocRef(), { deletedIds });
         syncDot.classList.remove('syncing');
@@ -576,6 +603,7 @@
       if (!currentUser) return;
       const newItem = { id: 'c_' + Date.now(), profile, category, label };
       addedItems.push(newItem);
+      pushToHistory();
       syncDot.classList.add('syncing');
       await updateDoc(getStateDocRef(), { addedItems });
       syncDot.classList.remove('syncing');
@@ -587,6 +615,41 @@
         pushDeletion(id);
       }
     });
+
+    // ======================================
+    // Undo / Redo Actions
+    // ======================================
+    document.getElementById('undoBtn').onclick = async () => {
+      if (historyIndex > 0) {
+        historyIndex--;
+        const state = history[historyIndex];
+        deletedIds = [...state.deletedIds];
+        addedItems = JSON.parse(JSON.stringify(state.addedItems));
+        updateUndoRedoButtons();
+        applySyncUI();
+        if (currentUser) {
+          syncDot.classList.add('syncing');
+          await updateDoc(getStateDocRef(), { deletedIds, addedItems });
+          syncDot.classList.remove('syncing');
+        }
+      }
+    };
+
+    document.getElementById('redoBtn').onclick = async () => {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        const state = history[historyIndex];
+        deletedIds = [...state.deletedIds];
+        addedItems = JSON.parse(JSON.stringify(state.addedItems));
+        updateUndoRedoButtons();
+        applySyncUI();
+        if (currentUser) {
+          syncDot.classList.add('syncing');
+          await updateDoc(getStateDocRef(), { deletedIds, addedItems });
+          syncDot.classList.remove('syncing');
+        }
+      }
+    };
 
     // ======================================
     // Navigation (Pan & Zoom)
@@ -601,7 +664,6 @@
     // Pan au Trackpad (Wheel)
     viewport.addEventListener('wheel', (e) => {
       e.preventDefault();
-      // On ne zoom plus au wheel, même avec CTRL
       tx -= e.deltaX * 1.2;
       ty -= e.deltaY * 1.2;
       applyTransform();
@@ -650,9 +712,6 @@
 
     document.getElementById('expand').onclick = () => bubbles.forEach(d => d.open = true);
     document.getElementById('collapse').onclick = () => bubbles.forEach(d => d.open = false);
-    document.getElementById('restore').onclick = async () => {
-      if(currentUser) await updateDoc(getStateDocRef(), { deletedIds: [] });
-    };
 
     q.oninput = () => {
       const t = q.value.toLowerCase();

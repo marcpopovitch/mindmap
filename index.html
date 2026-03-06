@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Carte mentale — Profils & Extras Bancaires (Cloud Sync)</title>
+  <title>Carte mentale — Profils & Extras (Gestion Complète)</title>
   <style>
     :root{
       --bg:#0b1020;
@@ -83,6 +83,7 @@
     }
     .status-dot.online { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
     .status-dot.syncing { background: #fbbf24; }
+    .status-dot.offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
 
     .controls{
       margin-left:auto;
@@ -768,49 +769,89 @@
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const firebaseConfig = JSON.parse(__firebase_config);
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'mindmap-app-default';
-
     const syncDot = document.getElementById('syncDot');
     const syncText = document.getElementById('syncText');
     const q = document.getElementById("q");
     const bubbles = Array.from(document.querySelectorAll("[data-bubble]"));
 
-    let currentUser = null;
+    let app, auth, db, currentUser = null;
     let deletedIds = [];
     let addedItems = [];
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'mindmap-app-default';
+
+    // ======================================
+    // 1. CONFIGURATION FIREBASE (POUR GITHUB)
+    // ======================================
+    // Remplissez ces valeurs avec celles de votre propre projet Firebase (gratuit)
+    // si vous hébergez ce fichier sur GitHub Pages ou un autre serveur.
+    const githubFirebaseConfig = {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    // Détection de l'environnement (Canvas de l'IA vs GitHub)
+    const isCanvasEnv = typeof __firebase_config !== 'undefined';
+    const configToUse = isCanvasEnv ? JSON.parse(__firebase_config) : githubFirebaseConfig;
 
     // Chemin Firebase : 6 segments (Pair)
     const getStateDocRef = () => doc(db, 'artifacts', appId, 'public', 'data', 'mindmap', 'state2');
 
-    const initAuth = async () => {
+    // ======================================
+    // Initialisation
+    // ======================================
+    if (configToUse.apiKey && configToUse.apiKey !== "") {
       try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
+        app = initializeApp(configToUse);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        
+        const initAuth = async () => {
+          try {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+              await signInAnonymously(auth);
+            }
+          } catch (e) {
+            console.error("Erreur Auth:", e);
+            syncText.innerText = "Erreur de connexion";
+            syncDot.classList.add('offline');
+          }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            currentUser = user;
+            syncDot.classList.add('online');
+            syncText.innerText = "Connecté (Cloud activé)";
+            startSync();
+          }
+        });
+
+        initAuth();
       } catch (e) {
-        syncText.innerText = "Erreur d'auth";
+        fallbackToLocalMode("Erreur d'initialisation Cloud");
+        console.error(e);
       }
-    };
+    } else {
+      fallbackToLocalMode("Mode Local (Ajoutez votre config Firebase)");
+    }
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        currentUser = user;
-        syncDot.classList.add('online');
-        syncText.innerText = "Connecté Cloud";
-        startSync();
-      }
-    });
-
-    initAuth();
+    function fallbackToLocalMode(message) {
+      syncText.innerText = message;
+      syncDot.classList.add('offline');
+      console.warn("Pour activer le Cloud sur GitHub, ajoutez vos clés dans la constante 'githubFirebaseConfig'.");
+      initOriginalItems(); // Initialise l'interface même sans cloud
+      applySyncUI(); // Applique localement (mémoire)
+    }
 
     function startSync() {
-      if (!currentUser) return;
+      if (!currentUser || !db) return;
       onSnapshot(getStateDocRef(), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -827,18 +868,20 @@
     // Actions de Modification & Suppression
     // ======================================
     async function pushDeletion(id) {
-      if (!currentUser) return;
-      syncDot.classList.add('syncing');
       if (!deletedIds.includes(id)) {
         deletedIds.push(id);
-        await updateDoc(getStateDocRef(), { deletedIds });
       }
-      syncDot.classList.remove('syncing');
+      
+      if (currentUser && db) {
+        syncDot.classList.add('syncing');
+        await updateDoc(getStateDocRef(), { deletedIds });
+        syncDot.classList.remove('syncing');
+      } else {
+        applySyncUI(); // Mode Local
+      }
     }
 
     async function pushAddition(profile, category, label) {
-      if (!currentUser) return;
-      syncDot.classList.add('syncing');
       const newItem = {
         id: 'custom_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
         profile,
@@ -846,15 +889,25 @@
         label
       };
       addedItems.push(newItem);
-      await updateDoc(getStateDocRef(), { addedItems });
-      syncDot.classList.remove('syncing');
+
+      if (currentUser && db) {
+        syncDot.classList.add('syncing');
+        await updateDoc(getStateDocRef(), { addedItems });
+        syncDot.classList.remove('syncing');
+      } else {
+        applySyncUI(); // Mode Local
+      }
     }
 
     async function restoreAll() {
-      if (!currentUser) return;
-      syncDot.classList.add('syncing');
-      await updateDoc(getStateDocRef(), { deletedIds: [] });
-      syncDot.classList.remove('syncing');
+      deletedIds = [];
+      if (currentUser && db) {
+        syncDot.classList.add('syncing');
+        await updateDoc(getStateDocRef(), { deletedIds: [] });
+        syncDot.classList.remove('syncing');
+      } else {
+        applySyncUI(); // Mode Local
+      }
     }
 
     // ======================================
@@ -883,7 +936,7 @@
       // 2. Nettoyer les custom items existants dans le DOM pour éviter les doublons
       document.querySelectorAll('.items li.custom-item').forEach(el => el.remove());
 
-      // 3. Injecter les items ajoutés depuis le Cloud
+      // 3. Injecter les items ajoutés
       addedItems.forEach(item => {
         if (deletedIds.includes(item.id)) return; // Si supprimé par la suite
 
@@ -902,7 +955,6 @@
           <div class="item-content" data-original='${item.label.replace(/'/g, "&#39;")}'>${item.label}</div>
           <div class="delete-btn" title="Supprimer">✖</div>
         `;
-        // Ajouter un indicateur "Nouveau" ou autre si besoin
         ul.appendChild(li);
       });
 
@@ -972,7 +1024,6 @@
       if (label && prof && cat) {
         pushAddition(prof, cat, label);
         addModal.classList.remove('active');
-        // Ouvrir la bulle ciblée
         document.querySelector(`[data-profile="${prof}"]`).open = true;
       }
     };
@@ -1004,6 +1055,7 @@
     document.getElementById("expand").onclick = () => bubbles.forEach(d=>d.open=true);
     document.getElementById("collapse").onclick = () => bubbles.forEach(d=>d.open=false);
     document.getElementById("reset").onclick = () => { scale=1; tx=0; ty=0; applyTransform(); };
+    document.getElementById("restore").onclick = () => restoreAll();
 
     // ======================================
     // Recherche et Surlignage
@@ -1024,7 +1076,6 @@
           return; 
         }
         
-        // Cacher la bulle entière si rien ne correspond
         const hit = d.innerText.toLowerCase().includes(term);
         d.style.display = hit ? "" : "none";
         if (hit) d.open = true;

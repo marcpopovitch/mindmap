@@ -235,6 +235,7 @@
     }
     .item-row {
       display: flex; align-items: center; width: 100%; gap: 8px;
+      position: relative;
     }
     .item-left {
       display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
@@ -339,6 +340,16 @@
     .preview-imp-badge[data-imp="high"]   { background: rgba(74,222,128,.15); color: #4ade80; }
     .preview-imp-badge[data-imp="medium"] { background: rgba(251,191,36,.15); color: #fbbf24; }
     .preview-imp-badge[data-imp="low"]    { background: rgba(239,68,68,.15); color: #ef4444; }
+
+    /* Modified-by badge on item row */
+    .modified-by-badge {
+      position: absolute; top: -6px; right: -4px;
+      padding: 1px 7px; border-radius: 8px;
+      font-size: 9px; font-weight: 700; line-height: 1.5;
+      color: #fff; white-space: nowrap;
+      pointer-events: none; z-index: 2;
+      box-shadow: 0 2px 6px rgba(0,0,0,.4);
+    }
 
     /* Add category button */
     .add-cat-btn {
@@ -947,15 +958,44 @@
         }
       });
 
-      // Send cursor position (throttled)
+      // Send cursor position in stage (content) coordinates so it matches across different pan/zoom states
       document.addEventListener('mousemove', (e) => {
         const now = Date.now();
         if (now - lastCursorSend < CURSOR_THROTTLE) return;
         lastCursorSend = now;
-        // Normalize to viewport percentage for cross-resolution sync
-        const px = e.clientX / window.innerWidth;
-        const py = e.clientY / window.innerHeight;
-        set(cursorRef, { x: px, y: py, name: userName, t: now });
+        const stageRect = stage.getBoundingClientRect();
+        const sx = (e.clientX - stageRect.left) / scale;
+        const sy = (e.clientY - stageRect.top) / scale;
+        set(cursorRef, { x: sx, y: sy, name: userName, t: now });
+      });
+
+      // Sync bubble open/close state via RTDB
+      const bubbleStateRef = ref(rtdb, `bubbleState/${appId}`);
+      let ignoreBubbleSync = false; // prevent echo loops
+
+      function broadcastBubbleState() {
+        if (ignoreBubbleSync) return;
+        const state = {};
+        for (const b of bubbles) state[b.dataset.profile] = b.open;
+        set(bubbleStateRef, state);
+      }
+
+      // Listen for local toggle events
+      bubbles.forEach(b => b.addEventListener('toggle', () => broadcastBubbleState()));
+
+      // Listen for remote bubble state changes
+      onValue(bubbleStateRef, (snapshot) => {
+        if (!snapshot.exists()) return;
+        const state = snapshot.val();
+        ignoreBubbleSync = true;
+        for (const b of bubbles) {
+          const shouldOpen = state[b.dataset.profile];
+          if (shouldOpen !== undefined && b.open !== shouldOpen) {
+            b.open = shouldOpen;
+          }
+        }
+        ignoreBubbleSync = false;
+        scheduleDrawConnectors();
       });
 
       // Listen presence count
@@ -977,8 +1017,10 @@
           if (now - (info.t || 0) > 15000) continue; // Stale > 15s
           seenUids.add(rUid);
 
-          const sx = info.x * window.innerWidth;
-          const sy = info.y * window.innerHeight;
+          // Convert from stage coordinates back to local screen coordinates
+          const stageRect = stage.getBoundingClientRect();
+          const sx = info.x * scale + stageRect.left;
+          const sy = info.y * scale + stageRect.top;
           const rName = info.name || 'Anonyme';
 
           if (!remoteCursorEls[rUid]) {
@@ -994,7 +1036,9 @@
           const el = remoteCursorEls[rUid];
           el.style.left = sx + 'px';
           el.style.top = sy + 'px';
-          el.style.display = showCursors ? '' : 'none';
+          // Hide if outside visible viewport or cursors disabled
+          const inView = sx >= -20 && sx <= window.innerWidth + 20 && sy >= -20 && sy <= window.innerHeight + 20;
+          el.style.display = (showCursors && inView) ? '' : 'none';
         }
 
         // Remove departed cursors
@@ -1143,12 +1187,21 @@
       const cat = escapeHtml(getItemCategoryLabel(id));
       const impLabel = impLabelsMap[imp] || '';
 
+      const modBy = (mod && mod.modifiedBy) || '';
+      const safeModBy = escapeHtml(modBy);
+      const modByColor = (mod && mod.modifiedByUid) ? uidToColor(mod.modifiedByUid) : '#7aa7ff';
+
       let previewContent = `<div class="preview-row"><span class="preview-label">Titre</span><span class="preview-value">${safeName}</span></div>`;
       previewContent += `<div class="preview-row"><span class="preview-label">Catégorie</span><span class="preview-value">${cat || '<em class="muted">—</em>'}</span></div>`;
       previewContent += `<div class="preview-row"><span class="preview-label">Pertinence</span>${impLabel ? `<span class="preview-imp-badge" data-imp="${escapeHtml(imp)}">${escapeHtml(impLabel)}</span>` : '<span class="preview-value muted">Non défini</span>'}</div>`;
       previewContent += `<div class="preview-row"><span class="preview-label">Description</span><span class="preview-value${desc ? '' : ' muted'}">${safeDesc || 'Aucune description'}</span></div>`;
+      previewContent += `<div class="preview-row"><span class="preview-label">Modifié par</span><span class="preview-value${modBy ? '' : ' muted'}">${safeModBy || 'Personne'}</span></div>`;
+
+      // Modified-by badge (top right of item row)
+      const modBadgeHTML = modBy ? `<div class="modified-by-badge" style="background:${modByColor}">${safeModBy}</div>` : '';
 
       return `<div class="item-row">
+        ${modBadgeHTML}
         <div class="item-left">
           <div class="imp-dot" data-imp="${escapeHtml(imp)}" title="Cliquer pour changer l'importance"></div>
           <div class="item-name">${safeName}</div>
@@ -1321,9 +1374,12 @@
 
     async function pushItemMod(id, changes) {
       const existing = itemMods[id] || {};
+      // Always stamp who modified
+      changes.modifiedBy = userName;
+      changes.modifiedByUid = currentUser ? currentUser.uid : '';
       itemMods[id] = { ...existing, ...changes };
       const m = itemMods[id];
-      if (!m.name && !m.description && !m.importance && !m.profile && !m.category) delete itemMods[id];
+      if (!m.name && !m.description && !m.importance && !m.profile && !m.category && !m.modifiedBy) delete itemMods[id];
       applySyncUI(); pushToHistory();
       await syncToFirestore({ itemMods }, `a modifié un élément`);
     }

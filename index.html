@@ -1285,8 +1285,7 @@
       if (!db) return;
       notesDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'mindmap', 'notes');
       onSnapshot(notesDocRef, (snap) => {
-        if (!snap.exists()) return;
-        const data = snap.data();
+        const data = snap.exists() ? snap.data() : {};
         const incoming = data.notes || [];
 
         // Detect new note for toast
@@ -1400,9 +1399,13 @@
       };
       notes.push(note);
       renderNotes();
+      await saveNotes();
+    }
+
+    async function saveNotes() {
+      if (!notesDocRef) return;
       try { await updateDoc(notesDocRef, { notes }); }
       catch (e) {
-        // Doc may not exist yet
         try { await setDoc(notesDocRef, { notes }); } catch (e2) { console.error(e2); }
       }
     }
@@ -1423,14 +1426,14 @@
         note.voteNames[uid] = userName;
       }
       renderNotes();
-      try { await updateDoc(notesDocRef, { notes }); } catch (e) { console.error(e); }
+      await saveNotes();
     }
 
     async function deleteNote(noteId) {
       if (!currentUser) return;
       notes = notes.filter(n => n.id !== noteId);
       renderNotes();
-      try { await updateDoc(notesDocRef, { notes }); } catch (e) { console.error(e); }
+      await saveNotes();
     }
 
     async function addReply(noteId, text) {
@@ -1445,7 +1448,7 @@
         time: Date.now()
       });
       renderNotes();
-      try { await updateDoc(notesDocRef, { notes }); } catch (e) { console.error(e); }
+      await saveNotes();
     }
 
     function showNoteToast(author, text) {
@@ -1461,11 +1464,14 @@
     // FAB toggle
     notesFab.onclick = () => notesPanel.classList.toggle('open');
 
-    // Close panel on outside click
-    document.addEventListener('click', (e) => {
-      if (notesPanel.classList.contains('open') && !notesPanel.contains(e.target) && !notesFab.contains(e.target)) {
-        notesPanel.classList.remove('open');
-      }
+    // Close panel ONLY on explicit outside click (not on note-toast, not on modals)
+    document.addEventListener('mousedown', (e) => {
+      if (!notesPanel.classList.contains('open')) return;
+      if (notesPanel.contains(e.target)) return;
+      if (notesFab.contains(e.target)) return;
+      if (e.target.closest('.note-toast')) return;
+      if (e.target.closest('.modal-overlay')) return;
+      notesPanel.classList.remove('open');
     });
 
     // Send note

@@ -49,6 +49,22 @@
     .title p{ margin:0; font-size:11px; color:var(--muted); display: flex; align-items: center; gap: 6px; }
     
     .sync-status { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.2); font-size: 10px; }
+    .presence-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.25);
+      font-size: 11px; font-weight: 600; color: #4ade80;
+      margin-left: 8px;
+    }
+    .presence-badge .presence-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #4ade80; box-shadow: 0 0 8px #4ade80;
+      animation: pulse-presence 2s ease-in-out infinite;
+    }
+    @keyframes pulse-presence {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
     .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #aaa; }
     .status-dot.online { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
     .status-dot.syncing { background: #fbbf24; }
@@ -146,7 +162,6 @@
       transform-origin: center;
       will-change: transform;
       padding: 200px;
-      transition: transform 0.05s linear;
     }
 
     /* Mindmap layout */
@@ -212,24 +227,91 @@
     }
 
     .items ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; }
+
+    /* Item layout */
     .items li{
       padding:10px 12px; border-radius: 12px; border:1px solid rgba(255,255,255,.05);
-      background: rgba(0,0,0,.15); font-size:12px; display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0,0,0,.15); font-size:12px; display: flex; flex-direction: column; gap: 0;
     }
-    
-    /* Hover effect dynamique pour le bouton de suppression */
-    .delete-btn { 
-      cursor: pointer; 
-      opacity: 0.3; 
-      transition: all 0.2s ease; 
-      padding: 4px 8px; 
-      border-radius: 6px; 
+    .item-row {
+      display: flex; align-items: center; width: 100%; gap: 8px;
     }
-    .delete-btn:hover { 
-      opacity: 1; 
-      color: #ff5555; 
-      background: rgba(255, 60, 60, 0.15); 
+    .item-left {
+      display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
     }
+    .item-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-actions {
+      display: flex; align-items: center; gap: 2px; flex-shrink: 0;
+    }
+
+    /* Importance dot */
+    .imp-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      border: 1.5px solid rgba(255,255,255,.15);
+    }
+    .imp-dot:hover { transform: scale(1.4); }
+    .imp-dot[data-imp="high"]   { background: #4ade80; border-color: #4ade80; box-shadow: 0 0 6px #4ade80; }
+    .imp-dot[data-imp="medium"] { background: #fbbf24; border-color: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+    .imp-dot[data-imp="low"]    { background: #ef4444; border-color: #ef4444; box-shadow: 0 0 6px #ef4444; }
+    .imp-dot[data-imp=""]       { background: rgba(255,255,255,.15); }
+
+    /* Importance dropdown */
+    .imp-menu {
+      position: absolute; z-index: 300;
+      background: #0f1730; border: 1px solid var(--line); border-radius: 10px;
+      padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,.6);
+      display: none; min-width: 180px;
+    }
+    .imp-menu.open { display: block; }
+    .imp-menu-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 12px; transition: background 0.15s;
+    }
+    .imp-menu-item:hover { background: rgba(122,167,255,.15); }
+    .imp-menu-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+
+    /* Description preview */
+    .item-desc {
+      font-size: 11px; color: var(--muted); line-height: 1.45;
+      margin-top: 5px; cursor: pointer; word-break: break-word;
+    }
+    .item-desc.collapsed {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .item-desc:empty { display: none; }
+
+    /* Action buttons */
+    .edit-btn, .delete-btn {
+      cursor: pointer; opacity: 0.3; transition: all 0.2s ease;
+      padding: 4px 8px; border-radius: 6px; font-size: 13px;
+    }
+    .edit-btn:hover { opacity: 1; color: var(--accent); background: rgba(122,167,255,.12); }
+    .delete-btn:hover { opacity: 1; color: #ff5555; background: rgba(255, 60, 60, 0.15); }
+
+    /* Edit modal extras */
+    .form-group textarea {
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);
+      background: rgba(0,0,0,0.2); color: var(--text); font-size: 13px; outline: none;
+      font-family: var(--sans); resize: vertical; min-height: 70px;
+    }
+    .imp-select-row {
+      display: flex; gap: 8px;
+    }
+    .imp-select-opt {
+      flex: 1; padding: 10px 8px; border-radius: 10px; text-align: center;
+      font-size: 11px; font-weight: 600; cursor: pointer;
+      border: 2px solid transparent; transition: all 0.2s;
+    }
+    .imp-select-opt[data-val="high"]   { background: rgba(74,222,128,.12); color: #4ade80; }
+    .imp-select-opt[data-val="medium"] { background: rgba(251,191,36,.12); color: #fbbf24; }
+    .imp-select-opt[data-val="low"]    { background: rgba(239,68,68,.12); color: #ef4444; }
+    .imp-select-opt.active { border-color: currentColor; }
+    .imp-select-opt:hover { filter: brightness(1.3); }
 
     /* Connectors */
     .connectors{ position:absolute; inset:0; pointer-events:none; z-index: 0; }
@@ -245,6 +327,10 @@
         <span class="sync-status">
           <span class="status-dot" id="syncDot"></span>
           <span id="syncText">Initialisation...</span>
+        </span>
+        <span class="presence-badge" id="presenceBadge" style="display:none">
+          <span class="presence-dot"></span>
+          <span id="presenceCount">0</span> en ligne
         </span>
       </p>
     </div>
@@ -289,6 +375,76 @@
         <button class="btn primary" id="confirmAdd">Ajouter</button>
       </div>
     </div>
+  </div>
+
+  <!-- Modal Édition -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>Modifier l'Extra</h3>
+      <div class="form-group">
+        <label>Nom</label>
+        <input type="text" id="editName" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="editDesc" placeholder="Ajouter une description..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Niveau d'importance</label>
+        <div class="imp-select-row">
+          <div class="imp-select-opt" data-val="high">Très pertinent</div>
+          <div class="imp-select-opt" data-val="medium">Pertinent</div>
+          <div class="imp-select-opt" data-val="low">Moins pertinent</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cancelEdit">Annuler</button>
+        <button class="btn primary" id="confirmEdit">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Importance quick-menu (positioned dynamically) -->
+  <div class="imp-menu" id="impMenu">
+    <div class="imp-menu-item" data-level="high"><div class="imp-menu-dot" style="background:#4ade80"></div> Très pertinent</div>
+    <div class="imp-menu-item" data-level="medium"><div class="imp-menu-dot" style="background:#fbbf24"></div> Pertinent</div>
+    <div class="imp-menu-item" data-level="low"><div class="imp-menu-dot" style="background:#ef4444"></div> Moins pertinent</div>
+    <div class="imp-menu-item" data-level=""><div class="imp-menu-dot" style="background:rgba(255,255,255,.2)"></div> Aucun</div>
+  </div>
+
+  <!-- Modal Édition -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>Modifier l'Extra</h3>
+      <div class="form-group">
+        <label>Nom</label>
+        <input type="text" id="editName" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="editDesc" placeholder="Ajouter une description..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Niveau d'importance</label>
+        <div class="imp-select-row">
+          <div class="imp-select-opt" data-val="high">Très pertinent</div>
+          <div class="imp-select-opt" data-val="medium">Pertinent</div>
+          <div class="imp-select-opt" data-val="low">Moins pertinent</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cancelEdit">Annuler</button>
+        <button class="btn primary" id="confirmEdit">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Importance quick-menu -->
+  <div class="imp-menu" id="impMenu">
+    <div class="imp-menu-item" data-level="high"><div class="imp-menu-dot" style="background:#4ade80"></div> Très pertinent</div>
+    <div class="imp-menu-item" data-level="medium"><div class="imp-menu-dot" style="background:#fbbf24"></div> Pertinent</div>
+    <div class="imp-menu-item" data-level="low"><div class="imp-menu-dot" style="background:#ef4444"></div> Moins pertinent</div>
+    <div class="imp-menu-item" data-level=""><div class="imp-menu-dot" style="background:rgba(255,255,255,.2)"></div> Aucun</div>
   </div>
 
   <div class="viewport" id="viewport">
@@ -490,26 +646,75 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getDatabase, ref, set, onValue, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
+    // Cache DOM references
     const syncDot = document.getElementById('syncDot');
     const syncText = document.getElementById('syncText');
     const q = document.getElementById("q");
     const bubbles = Array.from(document.querySelectorAll("[data-bubble]"));
     const stage = document.getElementById("stage");
     const viewport = document.getElementById("viewport");
+    const svg = document.getElementById("svg");
+    const mindmapEl = document.getElementById("mindmap");
+    const centerEl = document.getElementById("center");
+    const undoBtnEl = document.getElementById('undoBtn');
+    const redoBtnEl = document.getElementById('redoBtn');
+    const addModal = document.getElementById('addModal');
+    const profileSelect = document.getElementById('newProfileSelect');
+    const categorySelect = document.getElementById('newCategorySelect');
+    const nameInput = document.getElementById('newItemName');
+    const editModal = document.getElementById('editModal');
+    const editNameInput = document.getElementById('editName');
+    const editDescInput = document.getElementById('editDesc');
+    const impMenu = document.getElementById('impMenu');
+    const impSelectOpts = editModal.querySelectorAll('.imp-select-opt');
+    const presenceBadge = document.getElementById('presenceBadge');
+    const presenceCountEl = document.getElementById('presenceCount');
 
-    let app, auth, db, currentUser = null;
+    let firebaseApp, auth, db, rtdb, currentUser = null;
     let deletedIds = [];
+    let deletedSet = new Set();
     let addedItems = [];
+    let itemMods = {}; // { [itemId]: { name, description, importance } }
 
-    // History (Undo / Redo)
-    let history = [];
+    let undoHistory = [];
     let historyIndex = -1;
+    const MAX_HISTORY = 100;
+
+    // Edit state
+    let editingItemId = null;
+    let editingImpValue = '';
+    let impMenuTargetId = null;
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'mindmap-app-default';
 
     // ======================================
-    // 1. CONFIGURATION FIREBASE (VOS INFOS)
+    // Utilitaires
+    // ======================================
+    function escapeHtml(str) {
+      const el = document.createElement('span');
+      el.textContent = str;
+      return el.innerHTML;
+    }
+
+    function rebuildDeletedSet() { deletedSet = new Set(deletedIds); }
+    function getItemMod(id) { return itemMods[id] || {}; }
+
+    let drawRafId = 0;
+    function scheduleDrawConnectors() {
+      if (!drawRafId) {
+        drawRafId = requestAnimationFrame(() => { drawRafId = 0; drawConnectorsNow(); });
+      }
+    }
+
+    let searchTimer = 0;
+    function debounce(fn, ms) {
+      return (...args) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => fn(...args), ms); };
+    }
+
+    // ======================================
+    // CONFIGURATION FIREBASE
     // ======================================
     const githubFirebaseConfig = {
       apiKey: "AIzaSyCRtw9w6bmN3IvjMtRMMBrw68kWrXdixLM",
@@ -522,140 +727,313 @@
 
     const isCanvasEnv = typeof __firebase_config !== 'undefined';
     const configToUse = isCanvasEnv ? JSON.parse(__firebase_config) : githubFirebaseConfig;
-    const getStateDocRef = () => doc(db, 'artifacts', appId, 'public', 'data', 'mindmap', 'state2');
+    let stateDocRef = null;
 
-    // Initialisation Firebase
     if (configToUse.apiKey) {
       try {
-        app = initializeApp(configToUse);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        
+        firebaseApp = initializeApp(configToUse);
+        auth = getAuth(firebaseApp);
+        db = getFirestore(firebaseApp);
+        rtdb = getDatabase(firebaseApp);
+        stateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'mindmap', 'state2');
+
         onAuthStateChanged(auth, (user) => {
           if (user) {
             currentUser = user;
             syncDot.classList.add('online');
-            syncText.innerText = "Synchronisation Cloud Active";
+            syncText.textContent = "Synchronisation Cloud Active";
             startSync();
+            setupPresence(user.uid);
           }
         });
-        
-        const initAuth = async () => {
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
-        };
-        initAuth();
-      } catch (e) { console.error(e); }
+
+        (async () => {
+          try {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+              await signInAnonymously(auth);
+            }
+          } catch (e) { console.error('Auth failed:', e); }
+        })();
+      } catch (e) { console.error('Firebase init failed:', e); }
     }
 
-    function pushToHistory() {
-      if (historyIndex < history.length - 1) {
-        history = history.slice(0, historyIndex + 1);
-      }
-      history.push({
-        deletedIds: [...deletedIds],
-        addedItems: JSON.parse(JSON.stringify(addedItems))
+    // ======================================
+    // Présence en temps réel (RTDB)
+    // ======================================
+    function setupPresence(uid) {
+      const presenceRef = ref(rtdb, `presence/${appId}/${uid}`);
+      const allPresenceRef = ref(rtdb, `presence/${appId}`);
+      set(presenceRef, { online: true, lastSeen: serverTimestamp() });
+      onDisconnect(presenceRef).remove();
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          set(presenceRef, { online: true, lastSeen: serverTimestamp() });
+          onDisconnect(presenceRef).remove();
+        }
       });
-      historyIndex++;
+      onValue(allPresenceRef, (snapshot) => {
+        const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+        presenceCountEl.textContent = count;
+        presenceBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+      });
+    }
+
+    // ======================================
+    // History (Undo / Redo)
+    // ======================================
+    function pushToHistory() {
+      if (historyIndex < undoHistory.length - 1) undoHistory.length = historyIndex + 1;
+      undoHistory.push({
+        deletedIds: [...deletedIds],
+        addedItems: structuredClone(addedItems),
+        itemMods: structuredClone(itemMods)
+      });
+      if (undoHistory.length > MAX_HISTORY) undoHistory.shift();
+      else historyIndex++;
       updateUndoRedoButtons();
     }
 
     function updateUndoRedoButtons() {
-      const undoBtn = document.getElementById('undoBtn');
-      const redoBtn = document.getElementById('redoBtn');
-      if (undoBtn) undoBtn.disabled = historyIndex <= 0;
-      if (redoBtn) redoBtn.disabled = historyIndex >= history.length - 1;
+      undoBtnEl.disabled = historyIndex <= 0;
+      redoBtnEl.disabled = historyIndex >= undoHistory.length - 1;
     }
 
+    async function restoreHistoryState(idx) {
+      historyIndex = idx;
+      const state = undoHistory[historyIndex];
+      deletedIds = [...state.deletedIds];
+      addedItems = structuredClone(state.addedItems);
+      itemMods = structuredClone(state.itemMods || {});
+      rebuildDeletedSet();
+      updateUndoRedoButtons();
+      applySyncUI();
+      if (currentUser && stateDocRef) {
+        syncDot.classList.add('syncing');
+        try { await updateDoc(stateDocRef, { deletedIds, addedItems, itemMods }); }
+        catch (e) { console.error('Sync failed:', e); }
+        syncDot.classList.remove('syncing');
+      }
+    }
+
+    undoBtnEl.onclick = () => { if (historyIndex > 0) restoreHistoryState(historyIndex - 1); };
+    redoBtnEl.onclick = () => { if (historyIndex < undoHistory.length - 1) restoreHistoryState(historyIndex + 1); };
+
+    // ======================================
+    // Firebase Sync
+    // ======================================
     function startSync() {
-      onSnapshot(getStateDocRef(), (docSnap) => {
+      onSnapshot(stateDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           const incomingDeleted = data.deletedIds || [];
           const incomingAdded = data.addedItems || [];
+          const incomingMods = data.itemMods || {};
 
-          // Vérifier si les données entrantes diffèrent de l'état local
-          const isIdentical = JSON.stringify(deletedIds) === JSON.stringify(incomingDeleted) &&
-                              JSON.stringify(addedItems) === JSON.stringify(incomingAdded);
+          const isIdentical =
+            JSON.stringify(deletedIds) === JSON.stringify(incomingDeleted) &&
+            JSON.stringify(addedItems) === JSON.stringify(incomingAdded) &&
+            JSON.stringify(itemMods) === JSON.stringify(incomingMods);
 
-          if (!isIdentical || history.length === 0) {
+          if (!isIdentical || undoHistory.length === 0) {
             deletedIds = incomingDeleted;
             addedItems = incomingAdded;
+            itemMods = incomingMods;
+            rebuildDeletedSet();
             pushToHistory();
             applySyncUI();
           }
         } else {
-          setDoc(getStateDocRef(), { deletedIds: [], addedItems: [] });
+          setDoc(stateDocRef, { deletedIds: [], addedItems: [], itemMods: {} });
         }
       });
+    }
+
+    // ======================================
+    // Render item HTML
+    // ======================================
+    function buildItemHTML(id, name, mod) {
+      const imp = (mod && mod.importance) || '';
+      const desc = (mod && mod.description) || '';
+      const displayName = (mod && mod.name) || name;
+      const safeName = escapeHtml(displayName);
+      const safeDesc = escapeHtml(desc);
+
+      return `<div class="item-row">
+        <div class="item-left">
+          <div class="imp-dot" data-imp="${escapeHtml(imp)}" title="Cliquer pour changer l'importance"></div>
+          <div class="item-name">${safeName}</div>
+        </div>
+        <div class="item-actions">
+          <div class="edit-btn" title="Modifier">✏️</div>
+          <div class="delete-btn" title="Supprimer">✖</div>
+        </div>
+      </div>${safeDesc ? `<div class="item-desc collapsed">${safeDesc}</div>` : '<div class="item-desc"></div>'}`;
     }
 
     // ======================================
     // Sync UI & Items
     // ======================================
+    const originalNames = {};
+
     function initOriginalItems() {
       document.querySelectorAll('.items li:not(.custom-item)').forEach(li => {
         if (!li.dataset.id) {
-          const textId = btoa(encodeURIComponent(li.textContent.trim())).replace(/=/g, '');
-          li.setAttribute('data-id', textId);
-          const original = li.innerHTML;
-          li.innerHTML = `<div class="item-content" data-original='${original.replace(/'/g, "&#39;")}'>${original}</div><div class="delete-btn" title="Supprimer">✖</div>`;
+          const text = li.textContent.trim();
+          const textId = btoa(encodeURIComponent(text)).replace(/=/g, '');
+          li.dataset.id = textId;
+          originalNames[textId] = text;
+          li.innerHTML = buildItemHTML(textId, text, getItemMod(textId));
         }
       });
     }
 
     function applySyncUI() {
+      // Update original items
       document.querySelectorAll('.items li:not(.custom-item)').forEach(li => {
-        li.style.display = deletedIds.includes(li.dataset.id) ? 'none' : 'flex';
+        const id = li.dataset.id;
+        if (deletedSet.has(id)) { li.style.display = 'none'; return; }
+        li.style.display = 'flex';
+        li.innerHTML = buildItemHTML(id, originalNames[id] || '', getItemMod(id));
       });
-      document.querySelectorAll('.items li.custom-item').forEach(el => el.remove());
 
-      addedItems.forEach(item => {
-        if (deletedIds.includes(item.id)) return;
+      // Remove & re-add custom items
+      document.querySelectorAll('.items li.custom-item').forEach(el => el.remove());
+      for (const item of addedItems) {
+        if (deletedSet.has(item.id)) continue;
         const profileEl = document.querySelector(`[data-profile="${item.profile}"]`);
-        if (!profileEl) return;
+        if (!profileEl) continue;
         const targetGroup = Array.from(profileEl.querySelectorAll('.cat-group')).find(g => g.dataset.category === item.category);
         if (targetGroup) {
           const li = document.createElement('li');
           li.className = 'custom-item';
           li.dataset.id = item.id;
-          li.innerHTML = `<div class="item-content" data-original='${item.label.replace(/'/g, "&#39;")}'>${item.label}</div><div class="delete-btn">✖</div>`;
+          li.style.display = 'flex';
+          li.innerHTML = buildItemHTML(item.id, item.label, getItemMod(item.id));
           targetGroup.querySelector('ul').appendChild(li);
         }
-      });
-      drawConnectors();
+      }
+      scheduleDrawConnectors();
+    }
+
+    async function syncToFirestore(fields) {
+      if (!currentUser || !stateDocRef) return;
+      syncDot.classList.add('syncing');
+      try { await updateDoc(stateDocRef, fields); }
+      catch (e) { console.error('Sync failed:', e); }
+      syncDot.classList.remove('syncing');
     }
 
     async function pushDeletion(id) {
-      if (!currentUser) return;
-      if (!deletedIds.includes(id)) {
-        deletedIds.push(id);
-        applySyncUI(); // Mise à jour Instantanée de l'UI
-        pushToHistory();
-        syncDot.classList.add('syncing');
-        await updateDoc(getStateDocRef(), { deletedIds });
-        syncDot.classList.remove('syncing');
-      }
+      if (!currentUser || deletedSet.has(id)) return;
+      deletedIds.push(id);
+      deletedSet.add(id);
+      applySyncUI(); pushToHistory();
+      await syncToFirestore({ deletedIds });
     }
 
     async function pushAddition(profile, category, label) {
       if (!currentUser) return;
-      const newItem = { id: 'c_' + Date.now(), profile, category, label };
-      addedItems.push(newItem);
-      applySyncUI(); // Mise à jour Instantanée de l'UI
-      pushToHistory();
-      syncDot.classList.add('syncing');
-      await updateDoc(getStateDocRef(), { addedItems });
-      syncDot.classList.remove('syncing');
+      addedItems.push({ id: 'c_' + Date.now(), profile, category, label });
+      applySyncUI(); pushToHistory();
+      await syncToFirestore({ addedItems });
     }
 
-    document.getElementById('mindmap').addEventListener('click', (e) => {
-      if (e.target.classList.contains('delete-btn')) {
-        const id = e.target.closest('li').dataset.id;
-        pushDeletion(id);
+    async function pushItemMod(id, changes) {
+      const existing = itemMods[id] || {};
+      itemMods[id] = { ...existing, ...changes };
+      const m = itemMods[id];
+      if (!m.name && !m.description && !m.importance) delete itemMods[id];
+      applySyncUI(); pushToHistory();
+      await syncToFirestore({ itemMods });
+    }
+
+    // ======================================
+    // Event delegation on mindmap
+    // ======================================
+    mindmapEl.addEventListener('click', (e) => {
+      const t = e.target;
+      const li = t.closest('li');
+      if (!li) return;
+      const id = li.dataset.id;
+
+      if (t.classList.contains('delete-btn')) { pushDeletion(id); return; }
+      if (t.classList.contains('edit-btn')) { openEditModal(id); return; }
+      if (t.classList.contains('imp-dot')) { e.stopPropagation(); openImpMenu(t, id); return; }
+      if (t.classList.contains('item-desc') && t.textContent.trim()) { t.classList.toggle('collapsed'); return; }
+    });
+
+    // ======================================
+    // Edit Modal
+    // ======================================
+    function openEditModal(id) {
+      editingItemId = id;
+      const mod = getItemMod(id);
+      let currentName = mod.name || '';
+      if (!currentName) {
+        const added = addedItems.find(a => a.id === id);
+        currentName = added ? added.label : (originalNames[id] || '');
+      }
+      editNameInput.value = currentName;
+      editDescInput.value = mod.description || '';
+      editingImpValue = mod.importance || '';
+      impSelectOpts.forEach(opt => opt.classList.toggle('active', opt.dataset.val === editingImpValue));
+      editModal.classList.add('active');
+      editNameInput.focus();
+    }
+
+    impSelectOpts.forEach(opt => {
+      opt.onclick = () => {
+        editingImpValue = editingImpValue === opt.dataset.val ? '' : opt.dataset.val;
+        impSelectOpts.forEach(o => o.classList.toggle('active', o.dataset.val === editingImpValue));
+      };
+    });
+
+    document.getElementById('cancelEdit').onclick = () => { editModal.classList.remove('active'); editingItemId = null; };
+
+    document.getElementById('confirmEdit').onclick = () => {
+      if (!editingItemId) return;
+      const newName = editNameInput.value.trim();
+      const newDesc = editDescInput.value.trim();
+      const added = addedItems.find(a => a.id === editingItemId);
+      const origName = added ? added.label : (originalNames[editingItemId] || '');
+      const nameChanged = newName && newName !== origName;
+
+      pushItemMod(editingItemId, {
+        name: nameChanged ? newName : '',
+        description: newDesc,
+        importance: editingImpValue
+      });
+      editModal.classList.remove('active');
+      editingItemId = null;
+    };
+
+    editModal.onclick = (e) => { if (e.target === editModal) { editModal.classList.remove('active'); editingItemId = null; } };
+
+    // ======================================
+    // Importance Quick Menu (dot click)
+    // ======================================
+    function openImpMenu(dotEl, id) {
+      impMenuTargetId = id;
+      const rect = dotEl.getBoundingClientRect();
+      impMenu.style.left = rect.left + 'px';
+      impMenu.style.top = (rect.bottom + 6) + 'px';
+      impMenu.classList.add('open');
+    }
+
+    function closeImpMenu() { impMenu.classList.remove('open'); impMenuTargetId = null; }
+
+    impMenu.addEventListener('click', (e) => {
+      const item = e.target.closest('.imp-menu-item');
+      if (!item || !impMenuTargetId) return;
+      pushItemMod(impMenuTargetId, { importance: item.dataset.level });
+      closeImpMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (impMenu.classList.contains('open') && !impMenu.contains(e.target) && !e.target.classList.contains('imp-dot')) {
+        closeImpMenu();
       }
     });
 
@@ -663,188 +1041,147 @@
     // Export Data (Texte)
     // ======================================
     document.getElementById('downloadBtn').onclick = () => {
-      let textContent = "=================================================\n";
-      textContent += "   ÉCOSYSTÈME PAR PROFILS - EXTRAS BANCAIRES   \n";
-      textContent += "=================================================\n\n";
-
-      bubbles.forEach(bubble => {
-        const profileTitle = bubble.querySelector('.bubble-title b').innerText.trim();
-        const profileDesc = bubble.querySelector('.bubble-title span').innerText.trim();
-        
-        textContent += `[ PROFIL ] : ${profileTitle}\n`;
-        textContent += `[ VISION ] : ${profileDesc}\n`;
-        textContent += `-------------------------------------------------\n\n`;
-
-        const categories = bubble.querySelectorAll('.cat-group');
-        categories.forEach(cat => {
-          const catTitle = cat.querySelector('.cat-title').innerText.trim();
-          let hasVisibleItems = false;
-          let catContent = `  ■ CATÉGORIE : ${catTitle}\n`;
-
-          const items = cat.querySelectorAll('li');
-          items.forEach(li => {
-            if (li.style.display !== 'none') {
-              hasVisibleItems = true;
-              const contentDiv = li.querySelector('.item-content');
-              const itemText = contentDiv.innerText.replace(/\n/g, ' - ').trim();
-              catContent += `    - ${itemText}\n`;
-            }
-          });
-
-          if (hasVisibleItems) {
-            textContent += catContent + "\n";
+      const impLabels = { high: 'Très pertinent', medium: 'Pertinent', low: 'Moins pertinent' };
+      const parts = [
+        "=================================================",
+        "   ÉCOSYSTÈME PAR PROFILS - EXTRAS BANCAIRES   ",
+        "=================================================", ""
+      ];
+      for (const bubble of bubbles) {
+        parts.push(`[ PROFIL ] : ${bubble.querySelector('.bubble-title b').textContent.trim()}`);
+        parts.push(`[ VISION ] : ${bubble.querySelector('.bubble-title span').textContent.trim()}`);
+        parts.push(`-------------------------------------------------`, '');
+        for (const cat of bubble.querySelectorAll('.cat-group')) {
+          const catTitle = cat.querySelector('.cat-title').textContent.trim();
+          const visibleItems = [];
+          for (const li of cat.querySelectorAll('li')) {
+            if (li.style.display === 'none') continue;
+            const id = li.dataset.id;
+            const mod = getItemMod(id);
+            const nameEl = li.querySelector('.item-name');
+            const name = nameEl ? nameEl.textContent.trim() : '';
+            let line = `    - ${name}`;
+            if (mod.importance) line += ` [${impLabels[mod.importance] || ''}]`;
+            if (mod.description) line += `\n      ${mod.description}`;
+            visibleItems.push(line);
           }
-        });
-        textContent += "\n";
-      });
-
-      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+          if (visibleItems.length) {
+            parts.push(`  ■ CATÉGORIE : ${catTitle}`);
+            parts.push(...visibleItems, '');
+          }
+        }
+        parts.push('');
+      }
+      const blob = new Blob([parts.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      a.href = url;
       a.download = 'ecosysteme_extras_bancaires.txt';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    };
-
-    // ======================================
-    // Undo / Redo Actions
-    // ======================================
-    document.getElementById('undoBtn').onclick = async () => {
-      if (historyIndex > 0) {
-        historyIndex--;
-        const state = history[historyIndex];
-        deletedIds = [...state.deletedIds];
-        addedItems = JSON.parse(JSON.stringify(state.addedItems));
-        updateUndoRedoButtons();
-        applySyncUI(); // Mise à jour Instantanée
-        if (currentUser) {
-          syncDot.classList.add('syncing');
-          await updateDoc(getStateDocRef(), { deletedIds, addedItems });
-          syncDot.classList.remove('syncing');
-        }
-      }
-    };
-
-    document.getElementById('redoBtn').onclick = async () => {
-      if (historyIndex < history.length - 1) {
-        historyIndex++;
-        const state = history[historyIndex];
-        deletedIds = [...state.deletedIds];
-        addedItems = JSON.parse(JSON.stringify(state.addedItems));
-        updateUndoRedoButtons();
-        applySyncUI(); // Mise à jour Instantanée
-        if (currentUser) {
-          syncDot.classList.add('syncing');
-          await updateDoc(getStateDocRef(), { deletedIds, addedItems });
-          syncDot.classList.remove('syncing');
-        }
-      }
+      URL.revokeObjectURL(url);
     };
 
     // ======================================
     // Navigation (Pan & Zoom)
     // ======================================
     let scale = 1, tx = 0, ty = 0, isPanning = false, startX = 0, startY = 0;
+    let transformRafId = 0;
 
     function applyTransform() {
       stage.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${scale})`;
-      drawConnectors();
+      scheduleDrawConnectors();
+    }
+    function scheduleTransform() {
+      if (!transformRafId) {
+        transformRafId = requestAnimationFrame(() => { transformRafId = 0; applyTransform(); });
+      }
     }
 
-    // Pan au Trackpad (Wheel)
     viewport.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      tx -= e.deltaX * 1.2;
-      ty -= e.deltaY * 1.2;
-      applyTransform();
+      e.preventDefault(); tx -= e.deltaX * 1.2; ty -= e.deltaY * 1.2; scheduleTransform();
     }, { passive: false });
 
-    // Pan à la souris (Drag)
     viewport.onmousedown = (e) => {
-      if (["summary","details","input","button","select"].includes(e.target.tagName.toLowerCase())) return;
+      if (["summary","details","input","button","select","textarea"].includes(e.target.tagName.toLowerCase())) return;
+      if (e.target.closest('.imp-menu') || e.target.closest('.modal')) return;
       isPanning = true; startX = e.clientX - tx; startY = e.clientY - ty;
     };
-    window.onmousemove = (e) => {
-      if(isPanning) { tx = e.clientX - startX; ty = e.clientY - startY; applyTransform(); }
-    };
-    window.onmouseup = () => isPanning = false;
+    window.addEventListener('mousemove', (e) => {
+      if (isPanning) { tx = e.clientX - startX; ty = e.clientY - startY; scheduleTransform(); }
+    });
+    window.addEventListener('mouseup', () => { isPanning = false; });
 
-    // Zoom Buttons
     document.getElementById('zoomIn').onclick = () => { scale = Math.min(2, scale + 0.15); applyTransform(); };
     document.getElementById('zoomOut').onclick = () => { scale = Math.max(0.3, scale - 0.15); applyTransform(); };
     document.getElementById('reset').onclick = () => { scale = 1; tx = 0; ty = 0; applyTransform(); };
 
     // ======================================
-    // UI Controls
+    // UI Controls (Add modal)
     // ======================================
-    const addModal = document.getElementById('addModal');
-    const profileSelect = document.getElementById('newProfileSelect');
-    const categorySelect = document.getElementById('newCategorySelect');
-    const nameInput = document.getElementById('newItemName');
-
     document.getElementById('openAddModal').onclick = () => {
-      profileSelect.innerHTML = bubbles.map(b => `<option value="${b.dataset.profile}">${b.querySelector('b').innerText}</option>`).join('');
+      profileSelect.innerHTML = bubbles.map(b => `<option value="${b.dataset.profile}">${escapeHtml(b.querySelector('b').textContent)}</option>`).join('');
       updateCategorySelect();
+      nameInput.value = '';
       addModal.classList.add('active');
     };
     const updateCategorySelect = () => {
       const p = document.querySelector(`[data-profile="${profileSelect.value}"]`);
-      categorySelect.innerHTML = Array.from(p.querySelectorAll('.cat-group')).map(g => `<option value="${g.dataset.category}">${g.dataset.category}</option>`).join('');
+      categorySelect.innerHTML = Array.from(p.querySelectorAll('.cat-group')).map(g => `<option value="${g.dataset.category}">${escapeHtml(g.dataset.category)}</option>`).join('');
     };
     profileSelect.onchange = updateCategorySelect;
     document.getElementById('cancelAdd').onclick = () => addModal.classList.remove('active');
     document.getElementById('confirmAdd').onclick = () => {
-      if (nameInput.value.trim()) {
-        pushAddition(profileSelect.value, categorySelect.value, nameInput.value.trim());
-        addModal.classList.remove('active');
-      }
+      const val = nameInput.value.trim();
+      if (val) { pushAddition(profileSelect.value, categorySelect.value, val); addModal.classList.remove('active'); }
     };
+    addModal.onclick = (e) => { if (e.target === addModal) addModal.classList.remove('active'); };
 
-    document.getElementById('expand').onclick = () => bubbles.forEach(d => d.open = true);
-    document.getElementById('collapse').onclick = () => bubbles.forEach(d => d.open = false);
+    document.getElementById('expand').onclick = () => { bubbles.forEach(d => d.open = true); scheduleDrawConnectors(); };
+    document.getElementById('collapse').onclick = () => { bubbles.forEach(d => d.open = false); scheduleDrawConnectors(); };
 
-    q.oninput = () => {
+    q.oninput = debounce(() => {
       const t = q.value.toLowerCase();
-      bubbles.forEach(d => {
-        const hit = d.innerText.toLowerCase().includes(t);
+      for (const d of bubbles) {
+        const hit = d.textContent.toLowerCase().includes(t);
         d.style.display = t && !hit ? "none" : "";
         if (hit && t) d.open = true;
-      });
-      drawConnectors();
-    };
+      }
+      scheduleDrawConnectors();
+    }, 150);
 
     // ======================================
     // Connecteurs (SVG)
     // ======================================
-    const svg = document.getElementById("svg");
-    const mindmap = document.getElementById("mindmap");
-    const center = document.getElementById("center");
-
-    function drawConnectors(){
-      const w = mindmap.clientWidth, h = mindmap.clientHeight;
-      svg.setAttribute("width", w); svg.setAttribute("height", h);
-      const cR = center.getBoundingClientRect();
-      const mR = mindmap.getBoundingClientRect();
-      const cx = (cR.left + cR.width/2 - mR.left)/scale;
-      const cy = (cR.top + cR.height/2 - mR.top)/scale;
-
-      svg.innerHTML = `<defs><linearGradient id="g"><stop offset="0" stop-color="#7aa7ff66"/><stop offset="1" stop-color="#7bffcc33"/></linearGradient></defs>`;
-      bubbles.filter(d => d.style.display !== "none").forEach(d => {
+    function drawConnectorsNow() {
+      const w = mindmapEl.clientWidth, h = mindmapEl.clientHeight;
+      svg.setAttribute("width", w);
+      svg.setAttribute("height", h);
+      const cR = centerEl.getBoundingClientRect();
+      const mR = mindmapEl.getBoundingClientRect();
+      const cy = (cR.top + cR.height / 2 - mR.top) / scale;
+      const paths = ['<defs><linearGradient id="g"><stop offset="0" stop-color="#7aa7ff66"/><stop offset="1" stop-color="#7bffcc33"/></linearGradient></defs>'];
+      for (const d of bubbles) {
+        if (d.style.display === "none") continue;
         const r = d.getBoundingClientRect();
-        const isL = (r.left + r.width/2 < mR.left + mR.width/2 + tx);
-        const x1 = isL ? (cR.left - mR.left)/scale : (cR.right - mR.left)/scale;
-        const x2 = isL ? (r.right - mR.left)/scale : (r.left - mR.left)/scale;
-        const y2 = (r.top + r.height/2 - mR.top)/scale;
-        svg.innerHTML += `<path d="M ${x1} ${cy} C ${(x1+x2)/2} ${cy}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}" fill="none" stroke="url(#g)" stroke-width="2" />`;
-      });
+        const isL = (r.left + r.width / 2 < mR.left + mR.width / 2 + tx);
+        const x1 = isL ? (cR.left - mR.left) / scale : (cR.right - mR.left) / scale;
+        const x2 = isL ? (r.right - mR.left) / scale : (r.left - mR.left) / scale;
+        const y2 = (r.top + r.height / 2 - mR.top) / scale;
+        const mx = (x1 + x2) / 2;
+        paths.push(`<path d="M ${x1} ${cy} C ${mx} ${cy}, ${mx} ${y2}, ${x2} ${y2}" fill="none" stroke="url(#g)" stroke-width="2"/>`);
+      }
+      svg.innerHTML = paths.join('');
     }
 
+    // ======================================
+    // Init
+    // ======================================
     initOriginalItems();
-    window.onresize = drawConnectors;
-    bubbles.forEach(d => d.ontoggle = drawConnectors);
-    setTimeout(drawConnectors, 200);
-    applyTransform();
+    window.addEventListener('resize', scheduleDrawConnectors);
+    bubbles.forEach(d => d.addEventListener('toggle', scheduleDrawConnectors));
+    requestAnimationFrame(() => { drawConnectorsNow(); applyTransform(); });
   </script>
 </body>
 </html>

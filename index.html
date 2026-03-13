@@ -447,6 +447,44 @@
     @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes toast-out { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
 
+    /* Image upload & preview */
+    .img-upload-area {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .img-upload-btn {
+      width: 60px; height: 60px; border-radius: 10px; border: 1px dashed rgba(122,167,255,.35);
+      background: rgba(122,167,255,.05); color: var(--accent); font-size: 22px;
+      cursor: pointer; display: grid; place-items: center; transition: all 0.15s;
+    }
+    .img-upload-btn:hover { background: rgba(122,167,255,.12); border-color: var(--accent); }
+    .img-thumb-wrap {
+      position: relative; width: 60px; height: 60px; border-radius: 10px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    .img-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .img-thumb-remove {
+      position: absolute; top: -4px; right: -4px; width: 18px; height: 18px;
+      border-radius: 50%; background: #ef4444; color: #fff; border: none;
+      font-size: 10px; cursor: pointer; display: grid; place-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,.4);
+    }
+    /* Item image preview (inside item list) */
+    .item-images {
+      display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;
+    }
+    .item-images img {
+      width: 48px; height: 48px; border-radius: 8px; object-fit: cover;
+      border: 1px solid rgba(255,255,255,.08); cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .item-images img:hover { transform: scale(1.8); z-index: 10; position: relative; }
+    /* Fullscreen image overlay */
+    .img-fullscreen {
+      position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,.85);
+      display: grid; place-items: center; cursor: zoom-out;
+    }
+    .img-fullscreen img { max-width: 90vw; max-height: 90vh; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.7); }
+
     /* Notes FAB + Panel */
     .notes-fab {
       position: fixed; bottom: 28px; right: 28px; z-index: 460;
@@ -704,6 +742,12 @@
       <div class="form-group">
         <label>Catégorie</label>
         <select id="editCategory"></select>
+      </div>
+      <div class="form-group">
+        <label>Images (max 3)</label>
+        <div class="img-upload-area" id="editImgArea">
+          <input type="file" id="editImgInput" accept="image/*" multiple hidden />
+        </div>
       </div>
       <div class="form-group">
         <label>Niveau d'importance</label>
@@ -1684,6 +1728,13 @@
       // Modified-by badge (top right of item row)
       const modBadgeHTML = modBy ? `<div class="modified-by-badge" style="background:${modByColor}">${safeModBy}</div>` : '';
 
+      // Image thumbnails
+      const images = (mod && mod.images) || [];
+      let imagesHTML = '';
+      if (images.length > 0) {
+        imagesHTML = '<div class="item-images">' + images.map(src => `<img src="${src}" />`).join('') + '</div>';
+      }
+
       return `<div class="item-row">
         ${modBadgeHTML}
         <div class="item-left">
@@ -1694,7 +1745,7 @@
           <div class="edit-btn" title="Modifier">✏️</div>
           <div class="delete-btn" title="Supprimer">✖</div>
         </div>
-      </div>${safeDesc ? `<div class="item-desc collapsed">${safeDesc}</div>` : '<div class="item-desc"></div>'}
+      </div>${safeDesc ? `<div class="item-desc collapsed">${safeDesc}</div>` : '<div class="item-desc"></div>'}${imagesHTML}
       <div class="item-preview">${previewContent}</div>`;
     }
 
@@ -1885,7 +1936,7 @@
       changes.modifiedByUid = currentUser ? currentUser.uid : '';
       itemMods[id] = { ...existing, ...changes };
       const m = itemMods[id];
-      if (!m.name && !m.description && !m.importance && !m.profile && !m.category && !m.modifiedBy) delete itemMods[id];
+      if (!m.name && !m.description && !m.importance && !m.profile && !m.category && !m.modifiedBy && (!m.images || m.images.length === 0)) delete itemMods[id];
       applySyncUI(); pushToHistory();
       await syncToFirestore({ itemMods }, `a modifié un élément`);
     }
@@ -1970,6 +2021,84 @@
       }).join('');
     }
 
+    // ======================================
+    // Image handling (base64, max 3, resized)
+    // ======================================
+    const editImgArea = document.getElementById('editImgArea');
+    const editImgInput = document.getElementById('editImgInput');
+    let editingImages = []; // base64 strings
+
+    function resizeImage(file, maxW, maxH) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > maxW || h > maxH) {
+              const ratio = Math.min(maxW / w, maxH / h);
+              w = Math.round(w * ratio);
+              h = Math.round(h * ratio);
+            }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderEditImages() {
+      editImgArea.querySelectorAll('.img-thumb-wrap, .img-upload-btn').forEach(el => el.remove());
+      for (let i = 0; i < editingImages.length; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'img-thumb-wrap';
+        wrap.innerHTML = `<img src="${editingImages[i]}" /><button class="img-thumb-remove" data-img-idx="${i}">✕</button>`;
+        editImgArea.appendChild(wrap);
+      }
+      if (editingImages.length < 3) {
+        const btn = document.createElement('div');
+        btn.className = 'img-upload-btn';
+        btn.textContent = '+';
+        btn.onclick = () => editImgInput.click();
+        editImgArea.appendChild(btn);
+      }
+    }
+
+    editImgInput.onchange = async () => {
+      const files = Array.from(editImgInput.files);
+      const slots = 3 - editingImages.length;
+      for (const file of files.slice(0, slots)) {
+        const b64 = await resizeImage(file, 800, 800);
+        editingImages.push(b64);
+      }
+      editImgInput.value = '';
+      renderEditImages();
+    };
+
+    editImgArea.addEventListener('click', (e) => {
+      const rmBtn = e.target.closest('.img-thumb-remove');
+      if (!rmBtn) return;
+      editingImages.splice(parseInt(rmBtn.dataset.imgIdx), 1);
+      renderEditImages();
+    });
+
+    // Fullscreen image viewer
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.item-images img')) {
+        const src = e.target.closest('.item-images img').src;
+        const overlay = document.createElement('div');
+        overlay.className = 'img-fullscreen';
+        overlay.innerHTML = `<img src="${src}" />`;
+        overlay.onclick = () => overlay.remove();
+        document.body.appendChild(overlay);
+        return;
+      }
+    });
+
     function openEditModal(id) {
       editingItemId = id;
       const mod = getItemMod(id);
@@ -1995,6 +2124,10 @@
 
       // Category select
       populateEditCategorySelect(loc.profile, loc.category);
+
+      // Images
+      editingImages = mod.images ? [...mod.images] : [];
+      renderEditImages();
 
       // Importance
       editingImpValue = mod.importance || '';
@@ -2043,7 +2176,8 @@
         description: newDesc,
         importance: editingImpValue,
         profile: locationChanged ? newProfile : '',
-        category: locationChanged ? newCategory : ''
+        category: locationChanged ? newCategory : '',
+        images: editingImages.length > 0 ? editingImages : []
       });
 
       editModal.classList.remove('active');

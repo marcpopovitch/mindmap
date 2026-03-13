@@ -313,6 +313,107 @@
     .imp-select-opt.active { border-color: currentColor; }
     .imp-select-opt:hover { filter: brightness(1.3); }
 
+    /* Item preview panel (click to expand) */
+    .item-preview {
+      display: none; width: 100%; margin-top: 8px; padding: 10px 12px;
+      background: rgba(122,167,255,.06); border: 1px solid rgba(122,167,255,.15);
+      border-radius: 10px; font-size: 11px; line-height: 1.5;
+    }
+    .item-preview.open { display: block; }
+    .item-preview .preview-row {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+    }
+    .item-preview .preview-row:last-child { margin-bottom: 0; }
+    .item-preview .preview-label {
+      font-weight: 700; color: var(--accent); min-width: 80px; flex-shrink: 0;
+      text-transform: uppercase; font-size: 9px; letter-spacing: .5px;
+    }
+    .item-preview .preview-value {
+      color: var(--text); word-break: break-word;
+    }
+    .item-preview .preview-value.muted { color: var(--muted); font-style: italic; }
+    .preview-imp-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;
+    }
+    .preview-imp-badge[data-imp="high"]   { background: rgba(74,222,128,.15); color: #4ade80; }
+    .preview-imp-badge[data-imp="medium"] { background: rgba(251,191,36,.15); color: #fbbf24; }
+    .preview-imp-badge[data-imp="low"]    { background: rgba(239,68,68,.15); color: #ef4444; }
+
+    /* Add category button */
+    .add-cat-btn {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 14px; padding: 8px 12px;
+      border-radius: 10px; border: 1px dashed rgba(122,167,255,.3);
+      background: rgba(122,167,255,.05);
+      color: var(--accent); font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; user-select: none;
+    }
+    .add-cat-btn:hover {
+      background: rgba(122,167,255,.12); border-color: rgba(122,167,255,.5);
+    }
+    .add-cat-btn .plus-icon {
+      width: 20px; height: 20px; border-radius: 6px;
+      background: rgba(122,167,255,.15); display: grid; place-items: center;
+      font-size: 14px; font-weight: 700;
+    }
+
+    /* Remote cursors */
+    .remote-cursor {
+      position: fixed; z-index: 400; pointer-events: none;
+      transition: left 0.08s linear, top 0.08s linear;
+      will-change: left, top;
+    }
+    .remote-cursor svg { width: 20px; height: 22px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+    .remote-cursor-label {
+      position: absolute; left: 18px; top: 16px;
+      padding: 2px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; white-space: nowrap;
+      color: #fff; line-height: 1.4;
+    }
+
+    /* Toggle cursor button */
+    .btn.cursor-toggle { gap: 6px; font-size: 13px; }
+    .btn.cursor-toggle.off { opacity: 0.5; }
+
+    /* Name modal (mandatory) */
+    .name-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .name-modal {
+      background: #0f1730; border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 32px; width: 380px; max-width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,.75);
+      text-align: center;
+    }
+    .name-modal h2 { margin: 0 0 8px; font-size: 18px; }
+    .name-modal p { margin: 0 0 20px; font-size: 12px; color: var(--muted); }
+    .name-modal input {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
+      background: rgba(0,0,0,.3); color: var(--text); font-size: 15px; text-align: center;
+      outline: none; margin-bottom: 16px;
+    }
+    .name-modal input:focus { border-color: var(--accent); }
+    .name-modal .btn { width: 100%; justify-content: center; padding: 12px; font-size: 14px; }
+
+    /* Activity toasts */
+    .toast-container {
+      position: fixed; bottom: 24px; left: 24px; z-index: 450;
+      display: flex; flex-direction: column-reverse; gap: 8px;
+    }
+    .activity-toast {
+      padding: 8px 14px; border-radius: 10px;
+      background: rgba(15,23,48,.9); border: 1px solid var(--line);
+      backdrop-filter: blur(8px); font-size: 12px; color: var(--text);
+      box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px;
+      animation: toast-in 0.3s ease, toast-out 0.4s ease 3.6s forwards;
+      max-width: 360px;
+    }
+    .toast-user { font-weight: 700; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toast-out { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
     /* Connectors */
     .connectors{ position:absolute; inset:0; pointer-events:none; z-index: 0; }
     .connectors svg{ width:100%; height:100%; overflow:visible; display:block; }
@@ -320,6 +421,22 @@
 </head>
 
 <body>
+  <!-- Name modal (mandatory at start) -->
+  <div class="name-overlay" id="nameOverlay">
+    <div class="name-modal">
+      <h2>Bienvenue !</h2>
+      <p>Entrez votre nom pour collaborer en temps réel.</p>
+      <input type="text" id="userNameInput" placeholder="Votre prénom ou pseudo" maxlength="30" autofocus />
+      <button class="btn primary" id="confirmName">Rejoindre la carte</button>
+    </div>
+  </div>
+
+  <!-- Toast container for activity notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Remote cursors layer -->
+  <div id="cursorsLayer"></div>
+
   <div class="topbar">
     <div class="title">
       <h1>Carte mentale — Profils & Extras</h1>
@@ -345,6 +462,7 @@
       <button class="btn" id="undoBtn" title="Annuler" disabled>⟲</button>
       <button class="btn" id="redoBtn" title="Refaire" disabled>⟳</button>
       <button class="btn" id="reset">Reset vue</button>
+      <button class="btn cursor-toggle" id="cursorToggle" title="Afficher/masquer les curseurs">👁️🖱️</button>
     </div>
   </div>
 
@@ -390,6 +508,14 @@
         <textarea id="editDesc" placeholder="Ajouter une description..."></textarea>
       </div>
       <div class="form-group">
+        <label>Profil</label>
+        <select id="editProfile"></select>
+      </div>
+      <div class="form-group">
+        <label>Catégorie</label>
+        <select id="editCategory"></select>
+      </div>
+      <div class="form-group">
         <label>Niveau d'importance</label>
         <div class="imp-select-row">
           <div class="imp-select-opt" data-val="high">Très pertinent</div>
@@ -404,37 +530,21 @@
     </div>
   </div>
 
-  <!-- Importance quick-menu (positioned dynamically) -->
-  <div class="imp-menu" id="impMenu">
-    <div class="imp-menu-item" data-level="high"><div class="imp-menu-dot" style="background:#4ade80"></div> Très pertinent</div>
-    <div class="imp-menu-item" data-level="medium"><div class="imp-menu-dot" style="background:#fbbf24"></div> Pertinent</div>
-    <div class="imp-menu-item" data-level="low"><div class="imp-menu-dot" style="background:#ef4444"></div> Moins pertinent</div>
-    <div class="imp-menu-item" data-level=""><div class="imp-menu-dot" style="background:rgba(255,255,255,.2)"></div> Aucun</div>
-  </div>
-
-  <!-- Modal Édition -->
-  <div class="modal-overlay" id="editModal">
+  <!-- Modal Ajout Catégorie -->
+  <div class="modal-overlay" id="addCatModal">
     <div class="modal">
-      <h3>Modifier l'Extra</h3>
+      <h3>Nouvelle catégorie</h3>
       <div class="form-group">
-        <label>Nom</label>
-        <input type="text" id="editName" />
+        <label>Nom de la catégorie</label>
+        <input type="text" id="newCatName" placeholder="Ex: Intelligence Artificielle" />
       </div>
       <div class="form-group">
-        <label>Description</label>
-        <textarea id="editDesc" placeholder="Ajouter une description..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Niveau d'importance</label>
-        <div class="imp-select-row">
-          <div class="imp-select-opt" data-val="high">Très pertinent</div>
-          <div class="imp-select-opt" data-val="medium">Pertinent</div>
-          <div class="imp-select-opt" data-val="low">Moins pertinent</div>
-        </div>
+        <label>Icône (emoji)</label>
+        <input type="text" id="newCatIcon" placeholder="Ex: 🤖" maxlength="4" style="width:80px" />
       </div>
       <div class="modal-actions">
-        <button class="btn" id="cancelEdit">Annuler</button>
-        <button class="btn primary" id="confirmEdit">Enregistrer</button>
+        <button class="btn" id="cancelAddCat">Annuler</button>
+        <button class="btn primary" id="confirmAddCat">Créer</button>
       </div>
     </div>
   </div>
@@ -646,7 +756,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    import { getDatabase, ref, set, onValue, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+    import { getDatabase, ref, set, onValue, onDisconnect, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
     // Cache DOM references
     const syncDot = document.getElementById('syncDot');
@@ -667,16 +777,27 @@
     const editModal = document.getElementById('editModal');
     const editNameInput = document.getElementById('editName');
     const editDescInput = document.getElementById('editDesc');
+    const editProfileSelect = document.getElementById('editProfile');
+    const editCategorySelect = document.getElementById('editCategory');
     const impMenu = document.getElementById('impMenu');
     const impSelectOpts = editModal.querySelectorAll('.imp-select-opt');
     const presenceBadge = document.getElementById('presenceBadge');
     const presenceCountEl = document.getElementById('presenceCount');
+    const nameOverlay = document.getElementById('nameOverlay');
+    const userNameInput = document.getElementById('userNameInput');
+    const cursorsLayer = document.getElementById('cursorsLayer');
+    const cursorToggleBtn = document.getElementById('cursorToggle');
+    const toastContainer = document.getElementById('toastContainer');
 
     let firebaseApp, auth, db, rtdb, currentUser = null;
+    let userName = '';
+    let showCursors = true;
+    const remoteCursorEls = {}; // { uid: HTMLElement }
     let deletedIds = [];
     let deletedSet = new Set();
     let addedItems = [];
-    let itemMods = {}; // { [itemId]: { name, description, importance } }
+    let itemMods = {}; // { [itemId]: { name, description, importance, profile, category } }
+    let customCategories = []; // [ { id, profile, name, icon } ]
 
     let undoHistory = [];
     let historyIndex = -1;
@@ -686,6 +807,7 @@
     let editingItemId = null;
     let editingImpValue = '';
     let impMenuTargetId = null;
+    let addCatTargetProfile = null; // profile for which we're adding a category
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'mindmap-app-default';
 
@@ -722,7 +844,8 @@
       projectId: "mindmap-bbe22",
       storageBucket: "mindmap-bbe22.firebasestorage.app",
       messagingSenderId: "760423670810",
-      appId: "1:760423670810:web:a045b53580e5c4b1eadda3"
+      appId: "1:760423670810:web:a045b53580e5c4b1eadda3",
+      databaseURL: "https://mindmap-bbe22-default-rtdb.europe-west1.firebasedatabase.app"
     };
 
     const isCanvasEnv = typeof __firebase_config !== 'undefined';
@@ -760,24 +883,148 @@
     }
 
     // ======================================
-    // Présence en temps réel (RTDB)
+    // Couleurs pour curseurs distants
     // ======================================
+    const CURSOR_COLORS = [
+      '#ff6b6b','#ffa94d','#ffd43b','#69db7c','#4ecdc4',
+      '#74c0fc','#9775fa','#f06595','#38d9a9','#e599f7'
+    ];
+    function uidToColor(uid) {
+      let h = 0;
+      for (let i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) | 0;
+      return CURSOR_COLORS[Math.abs(h) % CURSOR_COLORS.length];
+    }
+
+    // ======================================
+    // Name Modal (obligatoire au démarrage)
+    // ======================================
+    const storedName = localStorage.getItem('mindmap_userName');
+    if (storedName) {
+      userName = storedName;
+      nameOverlay.style.display = 'none';
+    }
+
+    document.getElementById('confirmName').onclick = () => {
+      const val = userNameInput.value.trim();
+      if (!val) { userNameInput.focus(); return; }
+      userName = val;
+      localStorage.setItem('mindmap_userName', val);
+      nameOverlay.style.display = 'none';
+      // Update presence with name if already connected
+      if (currentUser && rtdb) {
+        const presRef = ref(rtdb, `presence/${appId}/${currentUser.uid}`);
+        set(presRef, { online: true, name: userName, lastSeen: serverTimestamp() });
+      }
+    };
+    userNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('confirmName').click();
+    });
+
+    // ======================================
+    // Présence + Curseurs en temps réel (RTDB)
+    // ======================================
+    let cursorRafPending = false;
+    let lastCursorSend = 0;
+    const CURSOR_THROTTLE = 70; // ms
+
     function setupPresence(uid) {
       const presenceRef = ref(rtdb, `presence/${appId}/${uid}`);
+      const cursorRef = ref(rtdb, `cursors/${appId}/${uid}`);
       const allPresenceRef = ref(rtdb, `presence/${appId}`);
-      set(presenceRef, { online: true, lastSeen: serverTimestamp() });
+      const allCursorsRef = ref(rtdb, `cursors/${appId}`);
+
+      // Mark online
+      set(presenceRef, { online: true, name: userName, lastSeen: serverTimestamp() });
       onDisconnect(presenceRef).remove();
+      onDisconnect(cursorRef).remove();
+
+      // Re-mark on visibility change
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-          set(presenceRef, { online: true, lastSeen: serverTimestamp() });
+          set(presenceRef, { online: true, name: userName, lastSeen: serverTimestamp() });
           onDisconnect(presenceRef).remove();
+          onDisconnect(cursorRef).remove();
         }
       });
+
+      // Send cursor position (throttled)
+      document.addEventListener('mousemove', (e) => {
+        const now = Date.now();
+        if (now - lastCursorSend < CURSOR_THROTTLE) return;
+        lastCursorSend = now;
+        // Normalize to viewport percentage for cross-resolution sync
+        const px = e.clientX / window.innerWidth;
+        const py = e.clientY / window.innerHeight;
+        set(cursorRef, { x: px, y: py, name: userName, t: now });
+      });
+
+      // Listen presence count
       onValue(allPresenceRef, (snapshot) => {
         const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
         presenceCountEl.textContent = count;
         presenceBadge.style.display = count > 0 ? 'inline-flex' : 'none';
       });
+
+      // Listen all cursors
+      onValue(allCursorsRef, (snapshot) => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.val();
+        const now = Date.now();
+        const seenUids = new Set();
+
+        for (const [rUid, info] of Object.entries(data)) {
+          if (rUid === uid) continue; // Skip own cursor
+          if (now - (info.t || 0) > 15000) continue; // Stale > 15s
+          seenUids.add(rUid);
+
+          const sx = info.x * window.innerWidth;
+          const sy = info.y * window.innerHeight;
+          const rName = info.name || 'Anonyme';
+
+          if (!remoteCursorEls[rUid]) {
+            // Create cursor element
+            const color = uidToColor(rUid);
+            const el = document.createElement('div');
+            el.className = 'remote-cursor';
+            el.innerHTML = `<svg viewBox="0 0 20 22" fill="none"><path d="M1 1L8 19L11 12L19 10L1 1Z" fill="${color}" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg><div class="remote-cursor-label" style="background:${color}">${escapeHtml(rName)}</div>`;
+            cursorsLayer.appendChild(el);
+            remoteCursorEls[rUid] = el;
+          }
+
+          const el = remoteCursorEls[rUid];
+          el.style.left = sx + 'px';
+          el.style.top = sy + 'px';
+          el.style.display = showCursors ? '' : 'none';
+        }
+
+        // Remove departed cursors
+        for (const oldUid of Object.keys(remoteCursorEls)) {
+          if (!seenUids.has(oldUid)) {
+            remoteCursorEls[oldUid].remove();
+            delete remoteCursorEls[oldUid];
+          }
+        }
+      });
+    }
+
+    // Toggle cursors visibility
+    cursorToggleBtn.onclick = () => {
+      showCursors = !showCursors;
+      cursorToggleBtn.classList.toggle('off', !showCursors);
+      for (const el of Object.values(remoteCursorEls)) {
+        el.style.display = showCursors ? '' : 'none';
+      }
+    };
+
+    // ======================================
+    // Activity Toasts
+    // ======================================
+    function showActivityToast(user, action) {
+      const toast = document.createElement('div');
+      toast.className = 'activity-toast';
+      toast.innerHTML = `<span class="toast-user">${escapeHtml(user)}</span> ${escapeHtml(action)}`;
+      toastContainer.appendChild(toast);
+      setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4200);
     }
 
     // ======================================
@@ -788,7 +1035,8 @@
       undoHistory.push({
         deletedIds: [...deletedIds],
         addedItems: structuredClone(addedItems),
-        itemMods: structuredClone(itemMods)
+        itemMods: structuredClone(itemMods),
+        customCategories: structuredClone(customCategories)
       });
       if (undoHistory.length > MAX_HISTORY) undoHistory.shift();
       else historyIndex++;
@@ -806,12 +1054,13 @@
       deletedIds = [...state.deletedIds];
       addedItems = structuredClone(state.addedItems);
       itemMods = structuredClone(state.itemMods || {});
+      customCategories = structuredClone(state.customCategories || []);
       rebuildDeletedSet();
       updateUndoRedoButtons();
       applySyncUI();
       if (currentUser && stateDocRef) {
         syncDot.classList.add('syncing');
-        try { await updateDoc(stateDocRef, { deletedIds, addedItems, itemMods }); }
+        try { await updateDoc(stateDocRef, { deletedIds, addedItems, itemMods, customCategories }); }
         catch (e) { console.error('Sync failed:', e); }
         syncDot.classList.remove('syncing');
       }
@@ -823,6 +1072,8 @@
     // ======================================
     // Firebase Sync
     // ======================================
+    let lastActionId = 0; // to avoid duplicate toasts
+
     function startSync() {
       onSnapshot(stateDocRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -830,22 +1081,32 @@
           const incomingDeleted = data.deletedIds || [];
           const incomingAdded = data.addedItems || [];
           const incomingMods = data.itemMods || {};
+          const incomingCats = data.customCategories || [];
 
           const isIdentical =
             JSON.stringify(deletedIds) === JSON.stringify(incomingDeleted) &&
             JSON.stringify(addedItems) === JSON.stringify(incomingAdded) &&
-            JSON.stringify(itemMods) === JSON.stringify(incomingMods);
+            JSON.stringify(itemMods) === JSON.stringify(incomingMods) &&
+            JSON.stringify(customCategories) === JSON.stringify(incomingCats);
 
           if (!isIdentical || undoHistory.length === 0) {
+            // Show toast for remote actions
+            const la = data.lastAction;
+            if (la && la.uid !== currentUser?.uid && la.t > lastActionId) {
+              lastActionId = la.t;
+              showActivityToast(la.user || 'Quelqu\'un', la.action);
+            }
+
             deletedIds = incomingDeleted;
             addedItems = incomingAdded;
             itemMods = incomingMods;
+            customCategories = incomingCats;
             rebuildDeletedSet();
             pushToHistory();
             applySyncUI();
           }
         } else {
-          setDoc(stateDocRef, { deletedIds: [], addedItems: [], itemMods: {} });
+          setDoc(stateDocRef, { deletedIds: [], addedItems: [], itemMods: {}, customCategories: [] });
         }
       });
     }
@@ -853,12 +1114,39 @@
     // ======================================
     // Render item HTML
     // ======================================
+    function getItemCategoryLabel(id) {
+      const mod = getItemMod(id);
+      const added = addedItems.find(a => a.id === id);
+      if (mod.category) return mod.category;
+      if (added) return added.category;
+      const orig = originalLocations[id];
+      return orig ? orig.category : '';
+    }
+
+    function getItemProfileLabel(id) {
+      const mod = getItemMod(id);
+      const added = addedItems.find(a => a.id === id);
+      if (mod.profile) return mod.profile;
+      if (added) return added.profile;
+      const orig = originalLocations[id];
+      return orig ? orig.profile : '';
+    }
+
+    const impLabelsMap = { high: 'Très pertinent', medium: 'Pertinent', low: 'Moins pertinent' };
+
     function buildItemHTML(id, name, mod) {
       const imp = (mod && mod.importance) || '';
       const desc = (mod && mod.description) || '';
       const displayName = (mod && mod.name) || name;
       const safeName = escapeHtml(displayName);
       const safeDesc = escapeHtml(desc);
+      const cat = escapeHtml(getItemCategoryLabel(id));
+      const impLabel = impLabelsMap[imp] || '';
+
+      let previewContent = `<div class="preview-row"><span class="preview-label">Titre</span><span class="preview-value">${safeName}</span></div>`;
+      previewContent += `<div class="preview-row"><span class="preview-label">Catégorie</span><span class="preview-value">${cat || '<em class="muted">—</em>'}</span></div>`;
+      previewContent += `<div class="preview-row"><span class="preview-label">Pertinence</span>${impLabel ? `<span class="preview-imp-badge" data-imp="${escapeHtml(imp)}">${escapeHtml(impLabel)}</span>` : '<span class="preview-value muted">Non défini</span>'}</div>`;
+      previewContent += `<div class="preview-row"><span class="preview-label">Description</span><span class="preview-value${desc ? '' : ' muted'}">${safeDesc || 'Aucune description'}</span></div>`;
 
       return `<div class="item-row">
         <div class="item-left">
@@ -869,13 +1157,15 @@
           <div class="edit-btn" title="Modifier">✏️</div>
           <div class="delete-btn" title="Supprimer">✖</div>
         </div>
-      </div>${safeDesc ? `<div class="item-desc collapsed">${safeDesc}</div>` : '<div class="item-desc"></div>'}`;
+      </div>${safeDesc ? `<div class="item-desc collapsed">${safeDesc}</div>` : '<div class="item-desc"></div>'}
+      <div class="item-preview">${previewContent}</div>`;
     }
 
     // ======================================
     // Sync UI & Items
     // ======================================
     const originalNames = {};
+    const originalLocations = {}; // { id: { profile, category } }
 
     function initOriginalItems() {
       document.querySelectorAll('.items li:not(.custom-item)').forEach(li => {
@@ -884,42 +1174,128 @@
           const textId = btoa(encodeURIComponent(text)).replace(/=/g, '');
           li.dataset.id = textId;
           originalNames[textId] = text;
+          // Store original location
+          const bubble = li.closest('[data-profile]');
+          const catGroup = li.closest('[data-category]');
+          if (bubble && catGroup) {
+            originalLocations[textId] = { profile: bubble.dataset.profile, category: catGroup.dataset.category };
+          }
           li.innerHTML = buildItemHTML(textId, text, getItemMod(textId));
         }
       });
     }
 
+    function ensureCatGroup(profile, category, icon) {
+      const profileEl = document.querySelector(`[data-profile="${profile}"]`);
+      if (!profileEl) return null;
+      const itemsDiv = profileEl.querySelector('.items');
+      if (!itemsDiv) return null;
+      // Check if cat-group already exists
+      let group = Array.from(itemsDiv.querySelectorAll('.cat-group')).find(g => g.dataset.category === category);
+      if (group) return group;
+      // Create new cat-group
+      group = document.createElement('div');
+      group.className = 'cat-group custom-cat';
+      group.dataset.category = category;
+      const safeIcon = escapeHtml(icon || '📁');
+      const safeName = escapeHtml(category);
+      group.innerHTML = `<div class="cat-title"><span>${safeIcon}</span> ${safeName}</div><ul></ul>`;
+      // Insert before the add-cat-btn if it exists, otherwise append
+      const addBtn = itemsDiv.querySelector('.add-cat-btn');
+      if (addBtn) itemsDiv.insertBefore(group, addBtn);
+      else itemsDiv.appendChild(group);
+      return group;
+    }
+
+    function appendItemToTarget(profile, category, li) {
+      const profileEl = document.querySelector(`[data-profile="${profile}"]`);
+      if (!profileEl) return false;
+      let targetGroup = Array.from(profileEl.querySelectorAll('.cat-group')).find(g => g.dataset.category === category);
+      if (!targetGroup) {
+        // Try to find in customCategories for icon
+        const cc = customCategories.find(c => c.profile === profile && c.name === category);
+        targetGroup = ensureCatGroup(profile, category, cc ? cc.icon : '');
+      }
+      if (!targetGroup) return false;
+      targetGroup.querySelector('ul').appendChild(li);
+      return true;
+    }
+
     function applySyncUI() {
+      // Remove dynamic elements first
+      document.querySelectorAll('.items li.custom-item, .items li.moved-item').forEach(el => el.remove());
+      document.querySelectorAll('.cat-group.custom-cat').forEach(el => el.remove());
+      document.querySelectorAll('.add-cat-btn').forEach(el => el.remove());
+
+      // Render custom categories (empty groups)
+      for (const cc of customCategories) {
+        ensureCatGroup(cc.profile, cc.name, cc.icon);
+      }
+
+      // Add "+" button to each bubble
+      for (const bubble of bubbles) {
+        const itemsDiv = bubble.querySelector('.items');
+        if (!itemsDiv) continue;
+        const btn = document.createElement('div');
+        btn.className = 'add-cat-btn';
+        btn.dataset.profile = bubble.dataset.profile;
+        btn.innerHTML = '<div class="plus-icon">+</div> Ajouter une catégorie';
+        itemsDiv.appendChild(btn);
+      }
+
       // Update original items
-      document.querySelectorAll('.items li:not(.custom-item)').forEach(li => {
+      document.querySelectorAll('.items li:not(.custom-item):not(.moved-item)').forEach(li => {
         const id = li.dataset.id;
+        if (!id) return;
         if (deletedSet.has(id)) { li.style.display = 'none'; return; }
-        li.style.display = 'flex';
-        li.innerHTML = buildItemHTML(id, originalNames[id] || '', getItemMod(id));
+        const mod = getItemMod(id);
+        const orig = originalLocations[id];
+        if (orig && mod.profile && mod.category &&
+            (mod.profile !== orig.profile || mod.category !== orig.category)) {
+          li.style.display = 'none';
+        } else {
+          li.style.display = 'flex';
+          li.innerHTML = buildItemHTML(id, originalNames[id] || '', mod);
+        }
       });
 
-      // Remove & re-add custom items
-      document.querySelectorAll('.items li.custom-item').forEach(el => el.remove());
+      // Re-render moved original items in their new location
+      for (const [id, mod] of Object.entries(itemMods)) {
+        if (deletedSet.has(id)) continue;
+        if (!originalLocations[id]) continue;
+        const orig = originalLocations[id];
+        if (!mod.profile || !mod.category) continue;
+        if (mod.profile === orig.profile && mod.category === orig.category) continue;
+        const li = document.createElement('li');
+        li.className = 'moved-item';
+        li.dataset.id = id;
+        li.style.display = 'flex';
+        li.innerHTML = buildItemHTML(id, originalNames[id] || '', mod);
+        appendItemToTarget(mod.profile, mod.category, li);
+      }
+
+      // Re-add custom (added) items
       for (const item of addedItems) {
         if (deletedSet.has(item.id)) continue;
-        const profileEl = document.querySelector(`[data-profile="${item.profile}"]`);
-        if (!profileEl) continue;
-        const targetGroup = Array.from(profileEl.querySelectorAll('.cat-group')).find(g => g.dataset.category === item.category);
-        if (targetGroup) {
-          const li = document.createElement('li');
-          li.className = 'custom-item';
-          li.dataset.id = item.id;
-          li.style.display = 'flex';
-          li.innerHTML = buildItemHTML(item.id, item.label, getItemMod(item.id));
-          targetGroup.querySelector('ul').appendChild(li);
-        }
+        const mod = getItemMod(item.id);
+        const targetProfile = mod.profile || item.profile;
+        const targetCategory = mod.category || item.category;
+        const li = document.createElement('li');
+        li.className = 'custom-item';
+        li.dataset.id = item.id;
+        li.style.display = 'flex';
+        li.innerHTML = buildItemHTML(item.id, item.label, mod);
+        appendItemToTarget(targetProfile, targetCategory, li);
       }
       scheduleDrawConnectors();
     }
 
-    async function syncToFirestore(fields) {
+    async function syncToFirestore(fields, actionLabel) {
       if (!currentUser || !stateDocRef) return;
       syncDot.classList.add('syncing');
+      if (actionLabel && userName) {
+        fields.lastAction = { user: userName, uid: currentUser.uid, action: actionLabel, t: Date.now() };
+      }
       try { await updateDoc(stateDocRef, fields); }
       catch (e) { console.error('Sync failed:', e); }
       syncDot.classList.remove('syncing');
@@ -927,26 +1303,29 @@
 
     async function pushDeletion(id) {
       if (!currentUser || deletedSet.has(id)) return;
+      // Get item name for toast
+      const nameEl = document.querySelector(`li[data-id="${CSS.escape(id)}"] .item-name`);
+      const itemLabel = nameEl ? nameEl.textContent.trim() : 'un élément';
       deletedIds.push(id);
       deletedSet.add(id);
       applySyncUI(); pushToHistory();
-      await syncToFirestore({ deletedIds });
+      await syncToFirestore({ deletedIds }, `a supprimé "${itemLabel}"`);
     }
 
     async function pushAddition(profile, category, label) {
       if (!currentUser) return;
       addedItems.push({ id: 'c_' + Date.now(), profile, category, label });
       applySyncUI(); pushToHistory();
-      await syncToFirestore({ addedItems });
+      await syncToFirestore({ addedItems }, `a ajouté "${label}"`);
     }
 
     async function pushItemMod(id, changes) {
       const existing = itemMods[id] || {};
       itemMods[id] = { ...existing, ...changes };
       const m = itemMods[id];
-      if (!m.name && !m.description && !m.importance) delete itemMods[id];
+      if (!m.name && !m.description && !m.importance && !m.profile && !m.category) delete itemMods[id];
       applySyncUI(); pushToHistory();
-      await syncToFirestore({ itemMods });
+      await syncToFirestore({ itemMods }, `a modifié un élément`);
     }
 
     // ======================================
@@ -962,26 +1341,93 @@
       if (t.classList.contains('edit-btn')) { openEditModal(id); return; }
       if (t.classList.contains('imp-dot')) { e.stopPropagation(); openImpMenu(t, id); return; }
       if (t.classList.contains('item-desc') && t.textContent.trim()) { t.classList.toggle('collapsed'); return; }
+
+      // Click on item row (name area) -> toggle preview panel
+      if (t.classList.contains('item-name') || t.classList.contains('item-left') || t.classList.contains('item-row')) {
+        const preview = li.querySelector('.item-preview');
+        if (preview) preview.classList.toggle('open');
+        return;
+      }
     });
 
     // ======================================
     // Edit Modal
     // ======================================
+    function getItemCurrentLocation(id) {
+      const mod = getItemMod(id);
+      // Check if it's a custom (added) item
+      const added = addedItems.find(a => a.id === id);
+      if (added) {
+        return { profile: mod.profile || added.profile, category: mod.category || added.category };
+      }
+      // Original item
+      const orig = originalLocations[id];
+      if (orig) {
+        return { profile: mod.profile || orig.profile, category: mod.category || orig.category };
+      }
+      return { profile: '', category: '' };
+    }
+
+    function getAllCategoriesForProfile(profileValue) {
+      const p = document.querySelector(`[data-profile="${profileValue}"]`);
+      const cats = new Set();
+      if (p) {
+        for (const g of p.querySelectorAll('.cat-group:not(.custom-cat)')) {
+          cats.add(g.dataset.category);
+        }
+      }
+      for (const cc of customCategories) {
+        if (cc.profile === profileValue) cats.add(cc.name);
+      }
+      return [...cats];
+    }
+
+    function populateEditCategorySelect(profileValue, selectedCategory) {
+      const cats = getAllCategoriesForProfile(profileValue);
+      editCategorySelect.innerHTML = cats.map(cat => {
+        const sel = cat === selectedCategory ? ' selected' : '';
+        return `<option value="${cat}"${sel}>${escapeHtml(cat)}</option>`;
+      }).join('');
+    }
+
     function openEditModal(id) {
       editingItemId = id;
       const mod = getItemMod(id);
+      const loc = getItemCurrentLocation(id);
+
+      // Name
       let currentName = mod.name || '';
       if (!currentName) {
         const added = addedItems.find(a => a.id === id);
         currentName = added ? added.label : (originalNames[id] || '');
       }
       editNameInput.value = currentName;
+
+      // Description
       editDescInput.value = mod.description || '';
+
+      // Profile select
+      editProfileSelect.innerHTML = bubbles.map(b => {
+        const pv = b.dataset.profile;
+        const sel = pv === loc.profile ? ' selected' : '';
+        return `<option value="${pv}"${sel}>${escapeHtml(b.querySelector('b').textContent)}</option>`;
+      }).join('');
+
+      // Category select
+      populateEditCategorySelect(loc.profile, loc.category);
+
+      // Importance
       editingImpValue = mod.importance || '';
       impSelectOpts.forEach(opt => opt.classList.toggle('active', opt.dataset.val === editingImpValue));
+
       editModal.classList.add('active');
       editNameInput.focus();
     }
+
+    // Update categories when profile changes in edit modal
+    editProfileSelect.onchange = () => {
+      populateEditCategorySelect(editProfileSelect.value, '');
+    };
 
     impSelectOpts.forEach(opt => {
       opt.onclick = () => {
@@ -994,17 +1440,32 @@
 
     document.getElementById('confirmEdit').onclick = () => {
       if (!editingItemId) return;
+      const id = editingItemId;
       const newName = editNameInput.value.trim();
       const newDesc = editDescInput.value.trim();
-      const added = addedItems.find(a => a.id === editingItemId);
-      const origName = added ? added.label : (originalNames[editingItemId] || '');
+      const newProfile = editProfileSelect.value;
+      const newCategory = editCategorySelect.value;
+
+      // Determine original name
+      const added = addedItems.find(a => a.id === id);
+      const origName = added ? added.label : (originalNames[id] || '');
       const nameChanged = newName && newName !== origName;
 
-      pushItemMod(editingItemId, {
+      // Determine original location
+      const origLoc = added
+        ? { profile: added.profile, category: added.category }
+        : (originalLocations[id] || { profile: '', category: '' });
+
+      const locationChanged = newProfile !== origLoc.profile || newCategory !== origLoc.category;
+
+      pushItemMod(id, {
         name: nameChanged ? newName : '',
         description: newDesc,
-        importance: editingImpValue
+        importance: editingImpValue,
+        profile: locationChanged ? newProfile : '',
+        category: locationChanged ? newCategory : ''
       });
+
       editModal.classList.remove('active');
       editingItemId = null;
     };
@@ -1036,6 +1497,42 @@
         closeImpMenu();
       }
     });
+
+    // ======================================
+    // Add Category
+    // ======================================
+    const addCatModal = document.getElementById('addCatModal');
+    const newCatNameInput = document.getElementById('newCatName');
+    const newCatIconInput = document.getElementById('newCatIcon');
+
+    // Click on "+" button in a bubble
+    mindmapEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.add-cat-btn');
+      if (!btn) return;
+      addCatTargetProfile = btn.dataset.profile;
+      newCatNameInput.value = '';
+      newCatIconInput.value = '';
+      addCatModal.classList.add('active');
+      newCatNameInput.focus();
+    });
+
+    document.getElementById('cancelAddCat').onclick = () => { addCatModal.classList.remove('active'); addCatTargetProfile = null; };
+    addCatModal.onclick = (e) => { if (e.target === addCatModal) { addCatModal.classList.remove('active'); addCatTargetProfile = null; } };
+
+    document.getElementById('confirmAddCat').onclick = async () => {
+      const name = newCatNameInput.value.trim();
+      if (!name || !addCatTargetProfile) return;
+      const icon = newCatIconInput.value.trim() || '📁';
+      // Check no duplicate
+      const exists = customCategories.some(c => c.profile === addCatTargetProfile && c.name === name) ||
+                     document.querySelector(`[data-profile="${addCatTargetProfile}"] [data-category="${CSS.escape(name)}"]`);
+      if (exists) { newCatNameInput.focus(); return; }
+      customCategories.push({ id: 'cat_' + Date.now(), profile: addCatTargetProfile, name, icon });
+      applySyncUI(); pushToHistory();
+      await syncToFirestore({ customCategories }, `a créé la catégorie "${name}"`);
+      addCatModal.classList.remove('active');
+      addCatTargetProfile = null;
+    };
 
     // ======================================
     // Export Data (Texte)
@@ -1127,8 +1624,8 @@
       addModal.classList.add('active');
     };
     const updateCategorySelect = () => {
-      const p = document.querySelector(`[data-profile="${profileSelect.value}"]`);
-      categorySelect.innerHTML = Array.from(p.querySelectorAll('.cat-group')).map(g => `<option value="${g.dataset.category}">${escapeHtml(g.dataset.category)}</option>`).join('');
+      const cats = getAllCategoriesForProfile(profileSelect.value);
+      categorySelect.innerHTML = cats.map(cat => `<option value="${cat}">${escapeHtml(cat)}</option>`).join('');
     };
     profileSelect.onchange = updateCategorySelect;
     document.getElementById('cancelAdd').onclick = () => addModal.classList.remove('active');

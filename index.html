@@ -61,6 +61,13 @@
       background: #4ade80; box-shadow: 0 0 8px #4ade80;
       animation: pulse-presence 2s ease-in-out infinite;
     }
+    .extras-count-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      background: rgba(122,167,255,.12); border: 1px solid rgba(122,167,255,.25);
+      font-size: 11px; font-weight: 600; color: var(--accent);
+      margin-left: 8px;
+    }
     @keyframes pulse-presence {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.4; }
@@ -627,6 +634,7 @@
           <span class="presence-dot"></span>
           <span id="presenceCount">0</span> en ligne
         </span>
+        <span class="extras-count-badge" id="extrasCountBadge">0 extras</span>
       </p>
     </div>
     <div class="search">
@@ -657,6 +665,10 @@
       <div class="form-group">
         <label>Nom de l'extra</label>
         <input type="text" id="newItemName" placeholder="Ex: Service Conciergerie VIP" required />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="newItemDesc" placeholder="Ajouter une description..." rows="2"></textarea>
       </div>
       <div class="form-group">
         <label>Profil Consommateur</label>
@@ -711,7 +723,7 @@
   <!-- Modal Ajout Catégorie -->
   <div class="modal-overlay" id="addCatModal">
     <div class="modal">
-      <h3>Nouvelle catégorie</h3>
+      <h3 id="catModalTitle">Nouvelle catégorie</h3>
       <div class="form-group">
         <label>Nom de la catégorie</label>
         <input type="text" id="newCatName" placeholder="Ex: Intelligence Artificielle" />
@@ -722,6 +734,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn" id="cancelAddCat">Annuler</button>
+        <button class="btn delete-note" id="deleteCatBtn" style="display:none">🗑 Supprimer</button>
         <button class="btn primary" id="confirmAddCat">Créer</button>
       </div>
     </div>
@@ -1297,6 +1310,23 @@
           }
         }
 
+        // Detect new replies for toast
+        if (notes.length > 0) {
+          for (const inNote of incoming) {
+            const oldNote = notes.find(n => n.id === inNote.id);
+            if (!oldNote) continue;
+            const oldReplies = oldNote.replies || [];
+            const newReplies = inNote.replies || [];
+            if (newReplies.length > oldReplies.length) {
+              const latest = newReplies[newReplies.length - 1];
+              if (latest && latest.authorUid !== currentUser?.uid) {
+                const preview = inNote.text.length > 30 ? inNote.text.substring(0, 30) + '…' : inNote.text;
+                showNoteToast(latest.author, `a répondu au commentaire "${preview}"`);
+              }
+            }
+          }
+        }
+
         notes = incoming;
         renderNotes();
       });
@@ -1811,6 +1841,11 @@
         li.innerHTML = buildItemHTML(item.id, item.label, mod);
         appendItemToTarget(targetProfile, targetCategory, li);
       }
+
+      // Update extras count in navbar
+      const totalExtras = document.querySelectorAll('.items li:not([style*="display: none"]):not([style*="display:none"])').length;
+      document.getElementById('extrasCountBadge').textContent = totalExtras + ' extras';
+
       scheduleDrawConnectors();
     }
 
@@ -1890,6 +1925,7 @@
       updateCategorySelect();
       categorySelect.value = targetCategory;
       nameInput.value = '';
+      newItemDescInput.value = '';
       addModal.classList.add('active');
       nameInput.focus();
     });
@@ -2048,34 +2084,111 @@
     const addCatModal = document.getElementById('addCatModal');
     const newCatNameInput = document.getElementById('newCatName');
     const newCatIconInput = document.getElementById('newCatIcon');
+    const catModalTitle = document.getElementById('catModalTitle');
+    const confirmAddCatBtn = document.getElementById('confirmAddCat');
+    const deleteCatBtn = document.getElementById('deleteCatBtn');
+    let editingCatId = null; // null = create mode, string = edit mode
+
+    function openCatModal(mode, profile, catId, catName, catIcon) {
+      addCatTargetProfile = profile;
+      editingCatId = mode === 'edit' ? catId : null;
+      catModalTitle.textContent = mode === 'edit' ? 'Modifier la catégorie' : 'Nouvelle catégorie';
+      confirmAddCatBtn.textContent = mode === 'edit' ? 'Enregistrer' : 'Créer';
+      deleteCatBtn.style.display = mode === 'edit' ? '' : 'none';
+      newCatNameInput.value = catName || '';
+      newCatIconInput.value = catIcon || '';
+      addCatModal.classList.add('active');
+      newCatNameInput.focus();
+    }
 
     // Click on "+" button in a bubble
     mindmapEl.addEventListener('click', (e) => {
       const btn = e.target.closest('.add-cat-btn');
       if (!btn) return;
-      addCatTargetProfile = btn.dataset.profile;
-      newCatNameInput.value = '';
-      newCatIconInput.value = '';
-      addCatModal.classList.add('active');
-      newCatNameInput.focus();
+      openCatModal('create', btn.dataset.profile);
     });
 
-    document.getElementById('cancelAddCat').onclick = () => { addCatModal.classList.remove('active'); addCatTargetProfile = null; };
-    addCatModal.onclick = (e) => { if (e.target === addCatModal) { addCatModal.classList.remove('active'); addCatTargetProfile = null; } };
+    // Long-press on cat-title to edit
+    let catLongPressTimer = null;
+    let catLongPressTriggered = false;
+    mindmapEl.addEventListener('pointerdown', (e) => {
+      const titleEl = e.target.closest('.cat-title');
+      if (!titleEl || e.target.closest('.cat-quick-add')) return;
+      const catGroup = titleEl.closest('.cat-group');
+      if (!catGroup) return;
+      catLongPressTriggered = false;
+      catLongPressTimer = setTimeout(() => {
+        catLongPressTriggered = true;
+        const bubble = catGroup.closest('[data-profile]');
+        if (!bubble) return;
+        const profile = bubble.dataset.profile;
+        const catName = catGroup.dataset.category;
+        // Find custom cat for icon, or extract from title
+        const cc = customCategories.find(c => c.profile === profile && c.name === catName);
+        const icon = cc ? cc.icon : (titleEl.querySelector('span') ? titleEl.querySelector('span').textContent.trim() : '');
+        const catId = cc ? cc.id : catName;
+        openCatModal('edit', profile, catId, catName, icon);
+      }, 500);
+    });
+    mindmapEl.addEventListener('pointerup', () => { clearTimeout(catLongPressTimer); });
+    mindmapEl.addEventListener('pointermove', () => { clearTimeout(catLongPressTimer); });
+    // Prevent click after long-press
+    mindmapEl.addEventListener('click', (e) => {
+      if (catLongPressTriggered && e.target.closest('.cat-title')) {
+        e.stopPropagation();
+        catLongPressTriggered = false;
+      }
+    }, true);
 
-    document.getElementById('confirmAddCat').onclick = async () => {
+    document.getElementById('cancelAddCat').onclick = () => { addCatModal.classList.remove('active'); addCatTargetProfile = null; editingCatId = null; };
+    addCatModal.onclick = (e) => { if (e.target === addCatModal) { addCatModal.classList.remove('active'); addCatTargetProfile = null; editingCatId = null; } };
+
+    // Delete custom category
+    deleteCatBtn.onclick = async () => {
+      if (!editingCatId) return;
+      customCategories = customCategories.filter(c => c.id !== editingCatId);
+      applySyncUI(); pushToHistory();
+      await syncToFirestore({ customCategories }, `a supprimé une catégorie`);
+      addCatModal.classList.remove('active');
+      addCatTargetProfile = null;
+      editingCatId = null;
+    };
+
+    confirmAddCatBtn.onclick = async () => {
       const name = newCatNameInput.value.trim();
       if (!name || !addCatTargetProfile) return;
       const icon = newCatIconInput.value.trim() || '📁';
-      // Check no duplicate
-      const exists = customCategories.some(c => c.profile === addCatTargetProfile && c.name === name) ||
-                     document.querySelector(`[data-profile="${addCatTargetProfile}"] [data-category="${CSS.escape(name)}"]`);
-      if (exists) { newCatNameInput.focus(); return; }
-      customCategories.push({ id: 'cat_' + Date.now(), profile: addCatTargetProfile, name, icon });
-      applySyncUI(); pushToHistory();
-      await syncToFirestore({ customCategories }, `a créé la catégorie "${name}"`);
+
+      if (editingCatId) {
+        // Edit mode — update existing custom category
+        const cc = customCategories.find(c => c.id === editingCatId);
+        if (cc) {
+          const oldName = cc.name;
+          cc.name = name;
+          cc.icon = icon;
+          // Update items that were in this category
+          for (const item of addedItems) {
+            if (item.profile === addCatTargetProfile && item.category === oldName) item.category = name;
+          }
+          for (const [id, mod] of Object.entries(itemMods)) {
+            if (mod.profile === addCatTargetProfile && mod.category === oldName) mod.category = name;
+          }
+          applySyncUI(); pushToHistory();
+          await syncToFirestore({ customCategories, addedItems, itemMods }, `a modifié la catégorie "${name}"`);
+        }
+      } else {
+        // Create mode
+        const exists = customCategories.some(c => c.profile === addCatTargetProfile && c.name === name) ||
+                       document.querySelector(`[data-profile="${addCatTargetProfile}"] [data-category="${CSS.escape(name)}"]`);
+        if (exists) { newCatNameInput.focus(); return; }
+        customCategories.push({ id: 'cat_' + Date.now(), profile: addCatTargetProfile, name, icon });
+        applySyncUI(); pushToHistory();
+        await syncToFirestore({ customCategories }, `a créé la catégorie "${name}"`);
+      }
+
       addCatModal.classList.remove('active');
       addCatTargetProfile = null;
+      editingCatId = null;
     };
 
     // ======================================
@@ -2165,8 +2278,10 @@
       profileSelect.innerHTML = bubbles.map(b => `<option value="${b.dataset.profile}">${escapeHtml(b.querySelector('b').textContent)}</option>`).join('');
       updateCategorySelect();
       nameInput.value = '';
+      newItemDescInput.value = '';
       addModal.classList.add('active');
     };
+    const newItemDescInput = document.getElementById('newItemDesc');
     const updateCategorySelect = () => {
       const cats = getAllCategoriesForProfile(profileSelect.value);
       categorySelect.innerHTML = cats.map(cat => `<option value="${cat}">${escapeHtml(cat)}</option>`).join('');
@@ -2175,7 +2290,16 @@
     document.getElementById('cancelAdd').onclick = () => addModal.classList.remove('active');
     document.getElementById('confirmAdd').onclick = () => {
       const val = nameInput.value.trim();
-      if (val) { pushAddition(profileSelect.value, categorySelect.value, val); addModal.classList.remove('active'); }
+      const desc = newItemDescInput.value.trim();
+      if (val) {
+        pushAddition(profileSelect.value, categorySelect.value, val);
+        // Apply description if provided
+        if (desc) {
+          const lastAdded = addedItems[addedItems.length - 1];
+          if (lastAdded) pushItemMod(lastAdded.id, { description: desc });
+        }
+        addModal.classList.remove('active');
+      }
     };
     addModal.onclick = (e) => { if (e.target === addModal) addModal.classList.remove('active'); };
 

@@ -343,7 +343,7 @@
 
     /* Modified-by badge on item row */
     .modified-by-badge {
-      position: absolute; top: -6px; right: -4px;
+      position: absolute; top: -14px; right: -4px;
       padding: 1px 7px; border-radius: 8px;
       font-size: 9px; font-weight: 700; line-height: 1.5;
       color: #fff; white-space: nowrap;
@@ -371,10 +371,12 @@
 
     /* Remote cursors */
     .remote-cursor {
-      position: fixed; z-index: 400; pointer-events: none;
-      transition: left 0.08s linear, top 0.08s linear;
-      will-change: left, top;
+      position: fixed; left: 0; top: 0; z-index: 400; pointer-events: none;
+      will-change: transform, opacity;
+      transition: opacity 0.3s ease;
     }
+    .remote-cursor.out-of-view { opacity: 0; }
+    .remote-cursor.in-view { opacity: 1; }
     .remote-cursor svg { width: 20px; height: 22px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
     .remote-cursor-label {
       position: absolute; left: 18px; top: 16px;
@@ -934,9 +936,11 @@
     // ======================================
     // Présence + Curseurs en temps réel (RTDB)
     // ======================================
-    let cursorRafPending = false;
     let lastCursorSend = 0;
     const CURSOR_THROTTLE = 70; // ms
+    // Remote cursor state: { uid: { targetX, targetY, currentX, currentY, name } }
+    const remoteCursorState = {};
+    const CURSOR_LERP = 0.18; // interpolation factor (0–1, higher = snappier)
 
     function setupPresence(uid) {
       const presenceRef = ref(rtdb, `presence/${appId}/${uid}`);
@@ -958,15 +962,14 @@
         }
       });
 
-      // Send cursor position in stage (content) coordinates so it matches across different pan/zoom states
+      // Send cursor as viewport percentage (0–1) so it's independent of pan/zoom
       document.addEventListener('mousemove', (e) => {
         const now = Date.now();
         if (now - lastCursorSend < CURSOR_THROTTLE) return;
         lastCursorSend = now;
-        const stageRect = stage.getBoundingClientRect();
-        const sx = (e.clientX - stageRect.left) / scale;
-        const sy = (e.clientY - stageRect.top) / scale;
-        set(cursorRef, { x: sx, y: sy, name: userName, t: now });
+        const px = e.clientX / window.innerWidth;
+        const py = e.clientY / window.innerHeight;
+        set(cursorRef, { x: px, y: py, name: userName, t: now });
       });
 
       // Sync bubble open/close state via RTDB
@@ -1005,7 +1008,7 @@
         presenceBadge.style.display = count > 0 ? 'inline-flex' : 'none';
       });
 
-      // Listen all cursors
+      // Listen all cursors — only update target stage coordinates
       onValue(allCursorsRef, (snapshot) => {
         if (!snapshot.exists()) return;
         const data = snapshot.val();
@@ -1013,32 +1016,26 @@
         const seenUids = new Set();
 
         for (const [rUid, info] of Object.entries(data)) {
-          if (rUid === uid) continue; // Skip own cursor
-          if (now - (info.t || 0) > 15000) continue; // Stale > 15s
+          if (rUid === uid) continue;
+          if (now - (info.t || 0) > 15000) continue;
           seenUids.add(rUid);
-
-          // Convert from stage coordinates back to local screen coordinates
-          const stageRect = stage.getBoundingClientRect();
-          const sx = info.x * scale + stageRect.left;
-          const sy = info.y * scale + stageRect.top;
           const rName = info.name || 'Anonyme';
 
+          if (!remoteCursorState[rUid]) {
+            remoteCursorState[rUid] = { targetX: info.x, targetY: info.y, currentX: info.x, currentY: info.y, name: rName };
+          } else {
+            remoteCursorState[rUid].targetX = info.x;
+            remoteCursorState[rUid].targetY = info.y;
+          }
+
           if (!remoteCursorEls[rUid]) {
-            // Create cursor element
             const color = uidToColor(rUid);
             const el = document.createElement('div');
-            el.className = 'remote-cursor';
+            el.className = 'remote-cursor out-of-view';
             el.innerHTML = `<svg viewBox="0 0 20 22" fill="none"><path d="M1 1L8 19L11 12L19 10L1 1Z" fill="${color}" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg><div class="remote-cursor-label" style="background:${color}">${escapeHtml(rName)}</div>`;
             cursorsLayer.appendChild(el);
             remoteCursorEls[rUid] = el;
           }
-
-          const el = remoteCursorEls[rUid];
-          el.style.left = sx + 'px';
-          el.style.top = sy + 'px';
-          // Hide if outside visible viewport or cursors disabled
-          const inView = sx >= -20 && sx <= window.innerWidth + 20 && sy >= -20 && sy <= window.innerHeight + 20;
-          el.style.display = (showCursors && inView) ? '' : 'none';
         }
 
         // Remove departed cursors
@@ -1046,18 +1043,50 @@
           if (!seenUids.has(oldUid)) {
             remoteCursorEls[oldUid].remove();
             delete remoteCursorEls[oldUid];
+            delete remoteCursorState[oldUid];
           }
         }
       });
+
+      // Continuous RAF loop: smoothly interpolate cursor positions (viewport-relative)
+      function tickCursors() {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        for (const [rUid, state] of Object.entries(remoteCursorState)) {
+          const el = remoteCursorEls[rUid];
+          if (!el) continue;
+
+          // Smooth interpolation toward target (viewport %)
+          state.currentX += (state.targetX - state.currentX) * CURSOR_LERP;
+          state.currentY += (state.targetY - state.currentY) * CURSOR_LERP;
+
+          // Convert viewport % → screen pixels
+          const screenX = state.currentX * vw;
+          const screenY = state.currentY * vh;
+
+          // GPU-accelerated positioning
+          el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
+
+          // Fade in/out
+          const visible = showCursors;
+          if (visible && el.classList.contains('out-of-view')) {
+            el.classList.remove('out-of-view');
+            el.classList.add('in-view');
+          } else if (!visible && !el.classList.contains('out-of-view')) {
+            el.classList.remove('in-view');
+            el.classList.add('out-of-view');
+          }
+        }
+        requestAnimationFrame(tickCursors);
+      }
+      requestAnimationFrame(tickCursors);
     }
 
     // Toggle cursors visibility
     cursorToggleBtn.onclick = () => {
       showCursors = !showCursors;
       cursorToggleBtn.classList.toggle('off', !showCursors);
-      for (const el of Object.values(remoteCursorEls)) {
-        el.style.display = showCursors ? '' : 'none';
-      }
     };
 
     // ======================================

@@ -104,7 +104,7 @@
     /* Zoom FAB Controls (Bottom Right) */
     .zoom-fab {
       position: fixed;
-      bottom: 60px;
+      bottom: 100px;
       right: 24px;
       display: flex;
       flex-direction: column;
@@ -225,6 +225,15 @@
       font-size: 11px; font-weight: 700; text-transform: uppercase;
       color: var(--accent); display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
     }
+    .cat-quick-add {
+      width: 16px; height: 16px; border-radius: 50%; border: none;
+      background: rgba(122,167,255,.12); color: var(--accent); font-size: 11px; font-weight: 700;
+      cursor: pointer; display: grid; place-items: center; margin-left: auto;
+      transition: all 0.15s; flex-shrink: 0; line-height: 1;
+      opacity: 0.5; padding: 0;
+    }
+    .cat-title:hover .cat-quick-add { opacity: 1; }
+    .cat-quick-add:hover { background: rgba(122,167,255,.3); transform: scale(1.15); }
 
     .items ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; }
 
@@ -369,11 +378,11 @@
       font-size: 14px; font-weight: 700;
     }
 
-    /* Remote cursors */
+    /* Remote cursors (inside stage, moves with content) */
     .remote-cursor {
-      position: fixed; left: 0; top: 0; z-index: 400; pointer-events: none;
+      position: absolute; left: 0; top: 0; z-index: 400; pointer-events: none;
       will-change: transform, opacity;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.4s ease;
     }
     .remote-cursor.out-of-view { opacity: 0; }
     .remote-cursor.in-view { opacity: 1; }
@@ -386,8 +395,12 @@
     }
 
     /* Toggle cursor button */
-    .btn.cursor-toggle { gap: 6px; font-size: 13px; }
-    .btn.cursor-toggle.off { opacity: 0.5; }
+    .btn.cursor-toggle { gap: 6px; font-size: 13px; position: relative; }
+    .btn.cursor-toggle.off::after {
+      content: ''; position: absolute; left: 25%; top: 45%;
+      width: 50%; height: 2px; background: #ef4444;
+      transform: rotate(-45deg); border-radius: 2px;
+    }
 
     /* Name modal (mandatory) */
     .name-overlay {
@@ -427,6 +440,142 @@
     @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes toast-out { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
 
+    /* Notes FAB + Panel */
+    .notes-fab {
+      position: fixed; bottom: 28px; right: 28px; z-index: 460;
+      width: 54px; height: 54px; border-radius: 50%;
+      background: linear-gradient(135deg, #7aa7ff, #7bffcc);
+      border: none; cursor: pointer; display: grid; place-items: center;
+      box-shadow: 0 6px 24px rgba(122,167,255,.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      color: #0b1020; font-size: 26px;
+    }
+    .notes-fab:hover { transform: scale(1.1); box-shadow: 0 8px 30px rgba(122,167,255,.55); }
+    .notes-fab .notes-badge {
+      position: absolute; top: -4px; right: -4px;
+      background: #ef4444; color: #fff; font-size: 10px; font-weight: 700;
+      min-width: 18px; height: 18px; border-radius: 9px;
+      display: none; align-items: center; justify-content: center; padding: 0 4px;
+    }
+    .notes-fab .notes-badge.visible { display: flex; }
+
+    .notes-panel {
+      position: fixed; bottom: 92px; right: 28px; z-index: 455;
+      width: 380px; max-width: calc(100vw - 56px); max-height: 70vh;
+      background: rgba(15,23,48,.95); border: 1px solid var(--line);
+      border-radius: var(--radius); backdrop-filter: blur(14px);
+      box-shadow: 0 20px 50px rgba(0,0,0,.6);
+      display: flex; flex-direction: column;
+      transform: translateY(12px); opacity: 0; pointer-events: none;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .notes-panel.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+    .notes-header {
+      padding: 16px 18px 12px; border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .notes-header h3 { margin: 0; font-size: 15px; }
+    .notes-header .notes-count { font-size: 11px; color: var(--muted); }
+
+    .notes-list {
+      flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .notes-list:empty::after {
+      content: 'Aucune note pour le moment.';
+      color: var(--muted); font-size: 12px; text-align: center; padding: 30px 0;
+    }
+
+    .note-card {
+      background: rgba(122,167,255,.06); border: 1px solid rgba(122,167,255,.12);
+      border-radius: 12px; padding: 12px 14px; position: relative;
+    }
+    .note-card.validated { border-color: rgba(74,222,128,.3); }
+    .note-meta {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 10px;
+    }
+    .note-author {
+      font-weight: 700; padding: 1px 8px; border-radius: 6px; color: #fff; font-size: 10px;
+    }
+    .note-time { color: var(--muted); }
+    .note-text { font-size: 13px; line-height: 1.5; word-break: break-word; }
+    .note-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .note-validators {
+      display: flex; flex-wrap: wrap; gap: 4px; font-size: 10px; align-items: center;
+    }
+    .note-val-chip {
+      padding: 1px 7px; border-radius: 6px; font-weight: 600; font-size: 9px;
+    }
+    .note-val-chip.yes { background: rgba(74,222,128,.15); color: #4ade80; }
+    .note-val-chip.no { background: rgba(239,68,68,.15); color: #ef4444; }
+    .note-actions { display: flex; gap: 6px; }
+    .note-btn {
+      padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line);
+      background: transparent; color: var(--text); font-size: 11px; cursor: pointer;
+      transition: all 0.15s; font-weight: 600;
+    }
+    .note-btn:hover { background: rgba(122,167,255,.12); }
+    .note-btn.validate { border-color: rgba(74,222,128,.4); color: #4ade80; }
+    .note-btn.validate:hover { background: rgba(74,222,128,.15); }
+    .note-btn.invalidate { border-color: rgba(239,68,68,.4); color: #ef4444; }
+    .note-btn.invalidate:hover { background: rgba(239,68,68,.15); }
+    .note-btn.delete-note { border-color: rgba(239,68,68,.3); color: #ef4444; font-size: 10px; }
+    .note-btn.reply-btn { border-color: rgba(122,167,255,.3); color: var(--accent); }
+
+    /* Note replies */
+    .note-replies { margin-top: 8px; padding-left: 12px; border-left: 2px solid rgba(122,167,255,.15); display: flex; flex-direction: column; gap: 6px; }
+    .note-reply {
+      padding: 6px 10px; border-radius: 8px; background: rgba(0,0,0,.2);
+      font-size: 11px; line-height: 1.45;
+    }
+    .note-reply-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+    .note-reply-author { font-weight: 700; font-size: 9px; padding: 0 5px; border-radius: 4px; color: #fff; }
+    .note-reply-time { color: var(--muted); font-size: 9px; }
+    .note-reply-text { word-break: break-word; }
+    .note-reply-input {
+      display: flex; gap: 6px; margin-top: 4px;
+    }
+    .note-reply-input input {
+      flex: 1; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line);
+      background: rgba(0,0,0,.3); color: var(--text); font-size: 11px; outline: none;
+    }
+    .note-reply-input input:focus { border-color: var(--accent); }
+    .note-reply-input button { padding: 4px 8px; font-size: 10px; }
+    .note-toggle-replies {
+      background: none; border: none; color: var(--muted); font-size: 10px;
+      cursor: pointer; padding: 2px 0; margin-top: 4px; text-align: left;
+    }
+    .note-toggle-replies:hover { color: var(--accent); }
+
+    .notes-input-area {
+      padding: 12px 14px; border-top: 1px solid var(--line);
+      display: flex; gap: 8px;
+    }
+    .notes-input-area textarea {
+      flex: 1; resize: none; border: 1px solid var(--line); border-radius: 10px;
+      background: rgba(0,0,0,.3); color: var(--text); padding: 10px 12px;
+      font-size: 13px; font-family: var(--sans); outline: none; min-height: 40px; max-height: 100px;
+    }
+    .notes-input-area textarea:focus { border-color: var(--accent); }
+    .notes-input-area .btn { padding: 8px 14px; align-self: flex-end; }
+
+    /* Note notification toast (clickable) */
+    .note-toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 500; padding: 10px 20px; border-radius: 12px;
+      background: rgba(15,23,48,.95); border: 1px solid rgba(122,167,255,.3);
+      backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      font-size: 13px; color: var(--text); cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      animation: note-toast-in 0.35s ease, note-toast-out 0.4s ease 3.6s forwards;
+    }
+    .note-toast .toast-user { font-weight: 700; color: var(--accent); }
+    @keyframes note-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @keyframes note-toast-out { from { opacity: 1; } to { opacity: 0; transform: translateX(-50%) translateY(-20px); pointer-events: none; } }
+
     /* Connectors */
     .connectors{ position:absolute; inset:0; pointer-events:none; z-index: 0; }
     .connectors svg{ width:100%; height:100%; overflow:visible; display:block; }
@@ -447,8 +596,24 @@
   <!-- Toast container for activity notifications -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- Remote cursors layer -->
-  <div id="cursorsLayer"></div>
+  <!-- Remote cursors layer (moved into stage via JS at init) -->
+
+  <!-- Notes FAB + Panel -->
+  <button class="notes-fab" id="notesFab" title="Notes collaboratives">
+    📝
+    <span class="notes-badge" id="notesBadge">0</span>
+  </button>
+  <div class="notes-panel" id="notesPanel">
+    <div class="notes-header">
+      <h3>Notes</h3>
+      <span class="notes-count" id="notesCount"></span>
+    </div>
+    <div class="notes-list" id="notesList"></div>
+    <div class="notes-input-area">
+      <textarea id="noteInput" placeholder="Écrire une note..." rows="1"></textarea>
+      <button class="btn primary" id="addNoteBtn">Envoyer</button>
+    </div>
+  </div>
 
   <div class="topbar">
     <div class="title">
@@ -475,7 +640,7 @@
       <button class="btn" id="undoBtn" title="Annuler" disabled>⟲</button>
       <button class="btn" id="redoBtn" title="Refaire" disabled>⟳</button>
       <button class="btn" id="reset">Reset vue</button>
-      <button class="btn cursor-toggle" id="cursorToggle" title="Afficher/masquer les curseurs">👁️🖱️</button>
+      <button class="btn cursor-toggle" id="cursorToggle" title="Afficher/masquer les curseurs">🖱️</button>
     </div>
   </div>
 
@@ -798,7 +963,11 @@
     const presenceCountEl = document.getElementById('presenceCount');
     const nameOverlay = document.getElementById('nameOverlay');
     const userNameInput = document.getElementById('userNameInput');
-    const cursorsLayer = document.getElementById('cursorsLayer');
+    // Create cursors layer inside stage so cursors move with content
+    const cursorsLayer = document.createElement('div');
+    cursorsLayer.id = 'cursorsLayer';
+    cursorsLayer.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:400;';
+    stage.appendChild(cursorsLayer);
     const cursorToggleBtn = document.getElementById('cursorToggle');
     const toastContainer = document.getElementById('toastContainer');
 
@@ -879,6 +1048,7 @@
             syncDot.classList.add('online');
             syncText.textContent = "Synchronisation Cloud Active";
             startSync();
+            initNotesSync();
             setupPresence(user.uid);
           }
         });
@@ -962,14 +1132,17 @@
         }
       });
 
-      // Send cursor as viewport percentage (0–1) so it's independent of pan/zoom
+      // Send cursor in stage-local coordinates (content space)
+      // so it's anchored to the mindmap content, not the viewport
       document.addEventListener('mousemove', (e) => {
         const now = Date.now();
         if (now - lastCursorSend < CURSOR_THROTTLE) return;
         lastCursorSend = now;
-        const px = e.clientX / window.innerWidth;
-        const py = e.clientY / window.innerHeight;
-        set(cursorRef, { x: px, y: py, name: userName, t: now });
+        // Convert screen → stage coordinates
+        const stageRect = stage.getBoundingClientRect();
+        const sx = (e.clientX - stageRect.left) / scale;
+        const sy = (e.clientY - stageRect.top) / scale;
+        set(cursorRef, { x: sx, y: sy, name: userName, t: now });
       });
 
       // Sync bubble open/close state via RTDB
@@ -1048,32 +1221,26 @@
         }
       });
 
-      // Continuous RAF loop: smoothly interpolate cursor positions (viewport-relative)
+      // Continuous RAF loop: smoothly interpolate cursor positions in stage space
+      // Cursors are inside stage, so they move with content automatically.
+      // Viewport overflow:hidden clips them when they're off screen.
       function tickCursors() {
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-
         for (const [rUid, state] of Object.entries(remoteCursorState)) {
           const el = remoteCursorEls[rUid];
           if (!el) continue;
 
-          // Smooth interpolation toward target (viewport %)
+          // Smooth interpolation toward target (stage coords)
           state.currentX += (state.targetX - state.currentX) * CURSOR_LERP;
           state.currentY += (state.targetY - state.currentY) * CURSOR_LERP;
 
-          // Convert viewport % → screen pixels
-          const screenX = state.currentX * vw;
-          const screenY = state.currentY * vh;
+          // Position in stage space (GPU-accelerated)
+          el.style.transform = `translate3d(${state.currentX}px, ${state.currentY}px, 0)`;
 
-          // GPU-accelerated positioning
-          el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
-
-          // Fade in/out
-          const visible = showCursors;
-          if (visible && el.classList.contains('out-of-view')) {
+          // Show/hide based on toggle
+          if (showCursors && el.classList.contains('out-of-view')) {
             el.classList.remove('out-of-view');
             el.classList.add('in-view');
-          } else if (!visible && !el.classList.contains('out-of-view')) {
+          } else if (!showCursors && !el.classList.contains('out-of-view')) {
             el.classList.remove('in-view');
             el.classList.add('out-of-view');
           }
@@ -1099,6 +1266,258 @@
       toastContainer.appendChild(toast);
       setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4200);
     }
+
+    // ======================================
+    // Notes collaboratives
+    // ======================================
+    const notesFab = document.getElementById('notesFab');
+    const notesPanel = document.getElementById('notesPanel');
+    const notesList = document.getElementById('notesList');
+    const notesCount = document.getElementById('notesCount');
+    const notesBadge = document.getElementById('notesBadge');
+    const noteInput = document.getElementById('noteInput');
+    const addNoteBtn = document.getElementById('addNoteBtn');
+    let notesDocRef = null;
+    let notes = []; // [{id, text, author, authorUid, time, votes: {uid: true/false}}]
+    let lastNoteToastId = 0;
+
+    function initNotesSync() {
+      if (!db) return;
+      notesDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'mindmap', 'notes');
+      onSnapshot(notesDocRef, (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const incoming = data.notes || [];
+
+        // Detect new note for toast
+        if (incoming.length > notes.length && notes.length > 0) {
+          const newest = incoming[incoming.length - 1];
+          if (newest && newest.authorUid !== currentUser?.uid && newest.time > lastNoteToastId) {
+            lastNoteToastId = newest.time;
+            showNoteToast(newest.author, newest.text);
+          }
+        }
+
+        notes = incoming;
+        renderNotes();
+      });
+    }
+
+    const expandedReplies = new Set(); // track which notes have replies expanded
+
+    function renderNotes() {
+      const uid = currentUser?.uid || '';
+      notesCount.textContent = `${notes.length} note${notes.length !== 1 ? 's' : ''}`;
+      const unread = notes.filter(n => n.authorUid !== uid && !(n.votes && n.votes[uid] !== undefined)).length;
+      notesBadge.textContent = unread;
+      notesBadge.classList.toggle('visible', unread > 0);
+
+      notesList.innerHTML = '';
+      for (const note of notes) {
+        const card = document.createElement('div');
+        card.className = 'note-card';
+        const votes = note.votes || {};
+        const replies = note.replies || [];
+        const yesVoters = Object.entries(votes).filter(([,v]) => v === true);
+        const noVoters = Object.entries(votes).filter(([,v]) => v === false);
+        if (yesVoters.length > noVoters.length) card.classList.add('validated');
+
+        const authorColor = note.authorUid ? uidToColor(note.authorUid) : '#7aa7ff';
+        const timeStr = new Date(note.time).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+
+        // Votes chips
+        let votesHTML = '';
+        for (const [vUid, val] of Object.entries(votes)) {
+          const vName = note.voteNames?.[vUid] || 'Anonyme';
+          votesHTML += `<span class="note-val-chip ${val ? 'yes' : 'no'}">${escapeHtml(vName)} ${val ? '✓' : '✗'}</span>`;
+        }
+
+        // Action buttons
+        const myVote = votes[uid];
+        const isAuthor = note.authorUid === uid;
+        let actionsHTML = '';
+        if (myVote !== true) actionsHTML += `<button class="note-btn validate" data-note-id="${note.id}" data-vote="true">✓ Valider</button>`;
+        if (myVote !== false) actionsHTML += `<button class="note-btn invalidate" data-note-id="${note.id}" data-vote="false">✗ Rejeter</button>`;
+        actionsHTML += `<button class="note-btn reply-btn" data-note-id="${note.id}" data-action="reply">💬</button>`;
+        if (isAuthor) actionsHTML += `<button class="note-btn delete-note" data-note-id="${note.id}" data-action="delete">🗑</button>`;
+
+        // Replies section
+        const showReplies = expandedReplies.has(note.id);
+        let repliesHTML = '';
+        if (replies.length > 0) {
+          repliesHTML += `<button class="note-toggle-replies" data-note-id="${note.id}" data-action="toggle-replies">${showReplies ? '▾ Masquer' : '▸ ' + replies.length + ' réponse' + (replies.length > 1 ? 's' : '')}</button>`;
+          if (showReplies) {
+            repliesHTML += '<div class="note-replies">';
+            for (const r of replies) {
+              const rColor = r.authorUid ? uidToColor(r.authorUid) : '#7aa7ff';
+              const rTime = new Date(r.time).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+              repliesHTML += `<div class="note-reply">
+                <div class="note-reply-meta">
+                  <span class="note-reply-author" style="background:${rColor}">${escapeHtml(r.author)}</span>
+                  <span class="note-reply-time">${rTime}</span>
+                </div>
+                <div class="note-reply-text">${escapeHtml(r.text)}</div>
+              </div>`;
+            }
+            repliesHTML += `<div class="note-reply-input">
+              <input type="text" placeholder="Répondre…" data-note-id="${note.id}" />
+              <button class="btn primary" data-note-id="${note.id}" data-action="send-reply">↵</button>
+            </div></div>`;
+          }
+        } else if (showReplies) {
+          repliesHTML += `<div class="note-replies"><div class="note-reply-input">
+            <input type="text" placeholder="Répondre…" data-note-id="${note.id}" />
+            <button class="btn primary" data-note-id="${note.id}" data-action="send-reply">↵</button>
+          </div></div>`;
+        }
+
+        card.innerHTML = `
+          <div class="note-meta">
+            <span class="note-author" style="background:${authorColor}">${escapeHtml(note.author)}</span>
+            <span class="note-time">${timeStr}</span>
+          </div>
+          <div class="note-text">${escapeHtml(note.text)}</div>
+          <div class="note-footer">
+            <div class="note-validators">${votesHTML || '<span style="color:var(--muted);font-size:10px">Aucun vote</span>'}</div>
+            <div class="note-actions">${actionsHTML}</div>
+          </div>
+          ${repliesHTML}`;
+        notesList.appendChild(card);
+      }
+      notesList.scrollTop = notesList.scrollHeight;
+    }
+
+    async function addNote(text) {
+      if (!currentUser || !notesDocRef || !text.trim()) return;
+      const note = {
+        id: 'n_' + Date.now(),
+        text: text.trim(),
+        author: userName,
+        authorUid: currentUser.uid,
+        time: Date.now(),
+        votes: {},
+        voteNames: {}
+      };
+      notes.push(note);
+      renderNotes();
+      try { await updateDoc(notesDocRef, { notes }); }
+      catch (e) {
+        // Doc may not exist yet
+        try { await setDoc(notesDocRef, { notes }); } catch (e2) { console.error(e2); }
+      }
+    }
+
+    async function voteNote(noteId, value) {
+      if (!currentUser) return;
+      const uid = currentUser.uid;
+      const note = notes.find(n => n.id === noteId);
+      if (!note) return;
+      if (!note.votes) note.votes = {};
+      if (!note.voteNames) note.voteNames = {};
+      // Toggle off if same vote
+      if (note.votes[uid] === value) {
+        delete note.votes[uid];
+        delete note.voteNames[uid];
+      } else {
+        note.votes[uid] = value;
+        note.voteNames[uid] = userName;
+      }
+      renderNotes();
+      try { await updateDoc(notesDocRef, { notes }); } catch (e) { console.error(e); }
+    }
+
+    async function deleteNote(noteId) {
+      if (!currentUser) return;
+      notes = notes.filter(n => n.id !== noteId);
+      renderNotes();
+      try { await updateDoc(notesDocRef, { notes }); } catch (e) { console.error(e); }
+    }
+
+    async function addReply(noteId, text) {
+      if (!currentUser || !text.trim()) return;
+      const note = notes.find(n => n.id === noteId);
+      if (!note) return;
+      if (!note.replies) note.replies = [];
+      note.replies.push({
+        author: userName,
+        authorUid: currentUser.uid,
+        text: text.trim(),
+        time: Date.now()
+      });
+      renderNotes();
+      try { await updateDoc(notesDocRef, { notes }); } catch (e) { console.error(e); }
+    }
+
+    function showNoteToast(author, text) {
+      const t = document.createElement('div');
+      t.className = 'note-toast';
+      const preview = text.length > 50 ? text.substring(0, 50) + '…' : text;
+      t.innerHTML = `<span class="toast-user">${escapeHtml(author)}</span> a ajouté une note : "${escapeHtml(preview)}"`;
+      t.onclick = () => { notesPanel.classList.add('open'); t.remove(); };
+      document.body.appendChild(t);
+      setTimeout(() => { if (t.parentNode) t.remove(); }, 4200);
+    }
+
+    // FAB toggle
+    notesFab.onclick = () => notesPanel.classList.toggle('open');
+
+    // Close panel on outside click
+    document.addEventListener('click', (e) => {
+      if (notesPanel.classList.contains('open') && !notesPanel.contains(e.target) && !notesFab.contains(e.target)) {
+        notesPanel.classList.remove('open');
+      }
+    });
+
+    // Send note
+    addNoteBtn.onclick = () => {
+      const val = noteInput.value.trim();
+      if (val) { addNote(val); noteInput.value = ''; }
+    };
+    noteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addNoteBtn.click(); }
+    });
+
+    // Notes event delegation (vote, delete, reply, toggle)
+    notesList.addEventListener('click', (e) => {
+      // Toggle replies
+      const toggleBtn = e.target.closest('.note-toggle-replies');
+      if (toggleBtn) {
+        const nid = toggleBtn.dataset.noteId;
+        if (expandedReplies.has(nid)) expandedReplies.delete(nid);
+        else expandedReplies.add(nid);
+        renderNotes();
+        return;
+      }
+      // Send reply
+      const sendBtn = e.target.closest('[data-action="send-reply"]');
+      if (sendBtn) {
+        const nid = sendBtn.dataset.noteId;
+        const input = notesList.querySelector(`.note-reply-input input[data-note-id="${nid}"]`);
+        if (input && input.value.trim()) { addReply(nid, input.value); }
+        return;
+      }
+      const btn = e.target.closest('.note-btn');
+      if (!btn) return;
+      if (btn.dataset.action === 'delete') { deleteNote(btn.dataset.noteId); return; }
+      if (btn.dataset.action === 'reply') {
+        expandedReplies.add(btn.dataset.noteId);
+        renderNotes();
+        // Focus reply input
+        setTimeout(() => {
+          const input = notesList.querySelector(`.note-reply-input input[data-note-id="${btn.dataset.noteId}"]`);
+          if (input) input.focus();
+        }, 50);
+        return;
+      }
+      if (btn.dataset.vote !== undefined) { voteNote(btn.dataset.noteId, btn.dataset.vote === 'true'); }
+    });
+    // Enter key in reply inputs
+    notesList.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.matches('.note-reply-input input')) {
+        const nid = e.target.dataset.noteId;
+        if (e.target.value.trim()) addReply(nid, e.target.value);
+      }
+    });
 
     // ======================================
     // History (Undo / Redo)
@@ -1308,6 +1727,7 @@
       document.querySelectorAll('.items li.custom-item, .items li.moved-item').forEach(el => el.remove());
       document.querySelectorAll('.cat-group.custom-cat').forEach(el => el.remove());
       document.querySelectorAll('.add-cat-btn').forEach(el => el.remove());
+      document.querySelectorAll('.cat-quick-add').forEach(el => el.remove());
 
       // Render custom categories (empty groups)
       for (const cc of customCategories) {
@@ -1323,6 +1743,22 @@
         btn.dataset.profile = bubble.dataset.profile;
         btn.innerHTML = '<div class="plus-icon">+</div> Ajouter une catégorie';
         itemsDiv.appendChild(btn);
+      }
+
+      // Add "+" quick-add button next to each cat-title
+      for (const bubble of bubbles) {
+        const profile = bubble.dataset.profile;
+        for (const catGroup of bubble.querySelectorAll('.cat-group')) {
+          const titleEl = catGroup.querySelector('.cat-title');
+          if (!titleEl) continue;
+          const addBtn = document.createElement('button');
+          addBtn.className = 'cat-quick-add';
+          addBtn.dataset.profile = profile;
+          addBtn.dataset.category = catGroup.dataset.category;
+          addBtn.title = 'Ajouter un extra';
+          addBtn.textContent = '+';
+          titleEl.appendChild(addBtn);
+        }
       }
 
       // Update original items
@@ -1433,6 +1869,23 @@
         if (preview) preview.classList.toggle('open');
         return;
       }
+    });
+
+    // Quick-add button on cat-title → open add modal with pre-selected profile & category
+    mindmapEl.addEventListener('click', (e) => {
+      const qBtn = e.target.closest('.cat-quick-add');
+      if (!qBtn) return;
+      e.stopPropagation();
+      const targetProfile = qBtn.dataset.profile;
+      const targetCategory = qBtn.dataset.category;
+      // Populate and open add modal
+      profileSelect.innerHTML = bubbles.map(b => `<option value="${b.dataset.profile}">${escapeHtml(b.querySelector('b').textContent)}</option>`).join('');
+      profileSelect.value = targetProfile;
+      updateCategorySelect();
+      categorySelect.value = targetCategory;
+      nameInput.value = '';
+      addModal.classList.add('active');
+      nameInput.focus();
     });
 
     // ======================================
